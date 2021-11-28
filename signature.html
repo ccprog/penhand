@@ -20,18 +20,15 @@
   <path d="M 986.4,193.6 1048,136.8 1018,193.6" data-pause="500" />
   <path d="M 1018,193.6 1060,160.6 C 1081,144.1 1104,130 1114,134.1 1134,142 1108,207.4 1079,196.4 1063,190.1 1069,158.9 1093,118.9 1119,76.52 1161,47.48 1172,51.24 1190,57.68 1154,118.6 1118,120.7" data-pause="500" />
   <path d="M 1031,113.5 C 1022,143.3 1040,133.2 1052,117.4" />
-  <filter id="blur">
-    <feGaussianBlur stdDeviation="0.25 0.1" />
-  </filter>
 </svg>
-<canvas class="signature" width="1240" height="240" style="width:620px;height:120px;"></canvas>
+<canvas class="signature" width="1240" height="240" style="width:620px;height:120px"></canvas>
 <script src="QuillWriter.js"></script>
 <script>
 const canvas = document.querySelector('canvas.signature');
 const svg = document.querySelector('svg.line');
 
 const signature = new QuillWriter(canvas, svg, {fill:'#391b0c'});
-setTimeout(()=>signature.start().then(console.log),10);
+signature.start().then(console.log);
 </script>
 </body>
 </html>
