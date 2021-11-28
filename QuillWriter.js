@@ -35,7 +35,7 @@ class QuillWriter {
 
         if (newDelta !== this.#config.delta) {
             this.#config.delta = newDelta;
-            this.ctx.filter = `blur(${newDelta}px)`;
+            this.ctx.canvas.style.filter = `blur(${newDelta}px)`;
 
             this.paths.forEach(path => delete path.points);
         }
