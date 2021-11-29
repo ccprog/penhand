@@ -107,7 +107,7 @@ class QuillWriter {
             distance += this.#config.delta;
         }
 
-        stroke.points.push(stroke.el.getPointAtLength(length));
+        stroke.points.push(stroke.el.getPointAtLength(stroke.length));
 
         return stroke.points.length;
     }
