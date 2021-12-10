@@ -1,0 +1,10 @@
+{
+  "name": "quillwriter",
+  "version": "0.1.0",
+  "description": "",
+  "author": "Claus Colloseus <ccprog@gmx.de>",
+  "license": "MIT",
+  "devDependencies": {
+    "cheerio": "^1.0.0-rc.10"
+  }
+}
