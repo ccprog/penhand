@@ -19,24 +19,31 @@ const cheerio = require('cheerio');
         .each((i, symbol) => {
             const [, name, position] = symbol.attribs.id.split('_');
             const advance = parseFloat(symbol.attribs.viewBox.split(' ')[2]);
+            const desc = $('title', symbol);
 
-            const strokes = $('path', symbol).map((i, path) => {
-                const p = $(path);
-                return { 
-                    d: p.attr('d'), 
-                    pause: p.data('pause'),
-                    late: !!p.data('late')
-                };
-            }).get();
+            let strokes = {};
 
-            if (['final', 'isolate'].indexOf(position) >= 0) {
-                const lastRegular = strokes.filter(stroke => !stroke.late).pop();
-                lastRegular.pause = 'move';
+            if (name !== ' ' ) {
+                strokes = $('path', symbol).map((i, path) => {
+                    const p = $(path);
+                    return { 
+                        d: p.attr('d'), 
+                        pause: p.data('pause'),
+                        late: !!p.data('late')
+                    };
+                }).get();
+
+                if (['final', 'isolate'].indexOf(position) >= 0) {
+                    const lastRegular = strokes.filter(stroke => !stroke.late).pop();
+                    lastRegular.pause = 'move';
+                }
             }
 
             if (!glyphs[name]) glyphs[name] = {};
 
             glyphs[name][position] = { advance, strokes };
+
+            if (desc.length) glyphs[name][position].desc = desc.text();
         });
 
         const data = JSON.stringify({ id: fontName, title, desc, glyphs });
