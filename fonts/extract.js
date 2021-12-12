@@ -21,7 +21,7 @@ const cheerio = require('cheerio');
             const advance = parseFloat(symbol.attribs.viewBox.split(' ')[2]);
             const desc = $('title', symbol);
 
-            let strokes = {};
+            let strokes = [];
 
             if (name !== ' ' ) {
                 strokes = $('path', symbol).map((i, path) => {

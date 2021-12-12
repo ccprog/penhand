@@ -1,16 +1,16 @@
 class QuillWriter {
     #config = {
         delta: 1,
-        width: 10,
+        width: 6,
         height: 1,
-        speed: 200,
-        pause: 500,
+        speed: 100,
         tilt: -40,
         fill: 'black'
     };
     #cost;
     #sint;
     #drawing = false;
+    #at;
     #restart;
     paths = [];
     #buffer;
@@ -52,19 +52,22 @@ class QuillWriter {
         });
     }
 
-    async start() {
+    clear () {
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    }
+
+    async start(at={}) {
         if (this.#drawing) {
             throw new Error('already running');
         } else {
             this.#drawing = true;
-
-            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-            this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+            this.#at = {x: 0, y: 0, ...at};
 
             this.#restart = performance.now();
             console.log(`start drawing...`);
 
-            await this.#processPaths();
+            await this.#processPaths(at);
 
             this.#drawing = false;
         }
@@ -143,7 +146,7 @@ class QuillWriter {
     }
 
     drawAtPoint({x, y}, quill=this.makeQuill(0, 0)) {
-        this.ctx.setTransform(1, 0, 0, 1, x, y);
+        this.ctx.setTransform(1, 0, 0, 1, x + this.#at.x, y + this.#at.y);
         this.ctx.rotate(this.#config.tilt * Math.PI / 180);
 
         this.ctx.fill(quill);

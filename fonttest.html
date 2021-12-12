@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en-US" >
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<svg class="line" width="0" height="0" style="display:block"></svg>
+<canvas class="signature" width="750" height="300" style="width:750px;height:300px"></canvas>
+<p><button class="start" disabled>Write next glyph</button></p>
+<script src="QuillWriter.js"></script>
+<script>
+const svgns = "http://www.w3.org/2000/svg";
+const wait = {
+  turn: 200,
+  move: 500
+};
+
+const userInput = (resolve) => {
+  button.addEventListener('click', () => {
+    button.disabled = true;
+    resolve();
+  }, { once: true });
+};
+
+const canvas = document.querySelector('canvas.signature');
+const svg = document.querySelector('svg.line');
+const button = document.querySelector('button.start');
+
+const board = new QuillWriter(canvas, svg, {fill:'#391b0c', speed: 80});
+board.ctx.font = '18px sans-serif';
+
+(async function () {
+  const res = await fetch('fonts/kurrent.json');
+  const data = await res.json();
+  console.log(data.id, data.desc);
+
+  for (const [name, variants] of Object.entries(data.glyphs)) {
+    button.disabled = false;
+
+    await new Promise(userInput);
+
+    board.clear();
+    let x = 50, line = 200;
+
+    for (const [position, { strokes, advance, desc }] of Object.entries(variants)) {
+      while (svg.firstChild) {
+        svg.removeChild(svg.firstChild);
+      }
+
+      const pauses = [];
+
+      for(const {d, late, pause} of strokes) {
+        const path = document.createElementNS(svgns, 'path');
+
+        path.setAttribute('d', d);
+        let directive = late ? 'l/' : '';
+
+        if (pause) {
+          directive += pause.slice(0, 1);
+          path.setAttribute('data-pause', wait[pause]);
+        } else {
+          directive += 'c';
+        }
+        pauses.push(directive);
+
+        svg.appendChild(path);
+      }
+
+      board.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const details = (desc || name) + ` | ${position} | ${strokes.length}: ${pauses.join(' ')}`;
+      board.ctx.fillText(details, 30, line);
+
+      board.registerPoints(svg);
+      await board.start({x, y: 30}).then(console.log);
+
+      line += 22;
+      x += 150;
+    }  
+  }
+})();
+
+</script>
+</body>
+</html>
