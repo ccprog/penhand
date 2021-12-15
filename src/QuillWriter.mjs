@@ -127,9 +127,8 @@ export class QuillWriter {
     strokes;
     #buffer;
 
-    constructor(canvas, strokes=[], config, pen) {
+    constructor(canvas, config, pen) {
         this.ctx = canvas.getContext('2d');
-        this.strokes = strokes;
         this.config = config;
         this.pen = new pens[pen.type](pen.config);
     }
@@ -149,10 +148,11 @@ export class QuillWriter {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     }
 
-    async start(at={}) {
+    async write(strokes, at={}) {
         if (this.#drawing) {
             throw new Error('already running');
         } else {
+            this.strokes = strokes;
             this.#drawing = true;
             this.#at = {x: 0, y: 0, ...at};
 

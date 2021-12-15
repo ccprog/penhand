@@ -25,7 +25,7 @@ const userInput = (resolve) => {
 const canvas = document.querySelector('canvas.signature');
 const button = document.querySelector('button.start');
 
-const board = new QuillWriter(canvas, undefined, config, pen);
+const board = new QuillWriter(canvas, config, pen);
 board.ctx.font = '18px sans-serif';
 
 (async function () {
@@ -61,8 +61,7 @@ board.ctx.font = '18px sans-serif';
       const details = (desc || name) + ` | ${position} | ${strokes.length}: ${pauses.join(' ')}`;
       board.ctx.fillText(details, 30, line);
 
-      board.strokes = strokes;
-      await board.start({x, y: 30});
+      await board.write(strokes, {x, y: 30});
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
