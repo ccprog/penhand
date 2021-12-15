@@ -1,4 +1,4 @@
-import QuillWriter from './QuillWriter.mjs';
+import { QuillWriter } from './QuillWriter.mjs';
 import { computeFont } from './pathToPoints.mjs';
 
 const config = {
@@ -6,10 +6,14 @@ const config = {
     turn: 200,
     move: 500
   },
-  fill: '#391b0c',
   speed: 80,
-  delta: 0.5
+  delta: 0.5,
+  fill: '#391b0c'
 };
+
+const pen = {
+  type: 'Broadpen'
+}
 
 const userInput = (resolve) => {
   button.addEventListener('click', () => {
@@ -21,7 +25,7 @@ const userInput = (resolve) => {
 const canvas = document.querySelector('canvas.signature');
 const button = document.querySelector('button.start');
 
-const board = new QuillWriter(canvas, undefined, config);
+const board = new QuillWriter(canvas, undefined, config, pen);
 board.ctx.font = '18px sans-serif';
 
 (async function () {
