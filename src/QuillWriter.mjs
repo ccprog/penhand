@@ -1,9 +1,13 @@
-class QuillWriter {
+export default class QuillWriter {
     #config = {
         delta: 1,
         width: 6,
         height: 1,
         speed: 100,
+        wait: {
+            turn: 200,
+            move: 500
+        },
         tilt: -40,
         fill: 'black'
     };
@@ -12,44 +16,26 @@ class QuillWriter {
     #drawing = false;
     #at;
     #restart;
-    paths = [];
+    strokes;
     #buffer;
 
-    constructor(canvas, svg, config) {
+    constructor(canvas, strokes=[], config) {
         this.ctx = canvas.getContext('2d');
-        this.registerPoints(svg);
+        this.strokes = strokes;
         this.config = config;
     }
 
     set config(config = {}) {
-        const oldDelta = this.#config.delta;
-        
         Object.assign(this.#config, config);
 
         this.#cost = Math.cos(this.#config.tilt * Math.PI / 180);
         this.#sint = Math.sin(this.#config.tilt * Math.PI / 180);
 
         this.ctx.fillStyle = this.#config.fill;
-
-        if (oldDelta !== this.#config.delta) {
-            this.paths.forEach(path => delete path.points);
-        }
     }
 
     get config() {
         return Object.assign({}, this.#config);
-    }
-
-    registerPoints(svg) {
-        const paths = svg.querySelectorAll('path');
-
-        this.paths = [...paths].map(el => {
-            return {
-                el,
-                length: el.getTotalLength(),
-                pause: parseInt(el.getAttribute('data-pause'), 10)
-            }
-        });
     }
 
     clear () {
@@ -65,62 +51,30 @@ class QuillWriter {
             this.#at = {x: 0, y: 0, ...at};
 
             this.#restart = performance.now();
-            console.log(`start drawing...`);
+            //console.log(`start drawing...`);
 
-            await this.#processPaths(at);
+            for (let stroke of this.strokes) {
+                this.#buffer = stroke;
+                stroke.perf = [];
+
+                await this.#drawStroke();
+            }
 
             this.#drawing = false;
         }
     }
 
-    async #processPaths() {
-        for (let stroke of this.paths) {
-            this.#buffer = stroke;
+    #drawStroke() {
+        this.#restart = performance.now();
 
-            if (!stroke.points) {
-                const num = this.#getPoints(this.#buffer);
+        return new Promise((resolve, reject) => {
+            requestAnimationFrame(this.#drawStep.bind(this, 0, resolve));
+        }).then((result) => {
+            //console.log(result);
 
-                console.log(`stroke with ${num} points prepared`);
-            }
-
-            stroke.delay = (this.#restart || 0) - performance.now();
-            stroke.perf = [];
-            if (stroke.delay > 0) {
-                await new Promise(resolve => setTimeout(resolve, stroke.delay));
-            } else {
-                this.#restart = performance.now();
-            }
-            console.log(await this.#drawStroke(true));
-        }
-        console.log(await this.#drawStroke(false));
-    }
-
-    #getPoints(stroke) {
-        stroke.points = [];
-
-        let distance = 0;
-
-        while (distance < stroke.length) {
-            stroke.points.push(stroke.el.getPointAtLength(distance));
-            distance += this.#config.delta;
-        }
-
-        stroke.points.push(stroke.el.getPointAtLength(stroke.length));
-
-        return stroke.points.length;
-    }
-
-    #drawStroke(more) {
-        if (more) {
-            return new Promise((resolve, reject) => {
-                requestAnimationFrame(this.#drawStep.bind(this, 0, resolve));
-            }).then((result) => {
-                this.#restart = performance.now() + this.#buffer.pause;
-                return Promise.resolve(result);
-            });
-        } else {
-            return Promise.resolve('done');
-        }
+            const wait = this.#config.wait[this.#buffer.pause] || 0;
+            return new Promise(resolve => setTimeout(resolve, wait));
+        });
     }
 
     #drawStep(isAt, resolve, t) {

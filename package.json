@@ -5,6 +5,12 @@
   "author": "Claus Colloseus <ccprog@gmx.de>",
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^21.0.1",
+    "@rollup/plugin-node-resolve": "^13.1.1",
     "cheerio": "^1.0.0-rc.10"
+  },
+  "dependencies": {
+    "bezier-js": "^4.1.1",
+    "pathfit": "^1.0.3"
   }
 }
