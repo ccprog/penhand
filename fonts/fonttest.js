@@ -25,84 +25,90 @@
             return Object.assign({}, this.#config);
         }
 
+        #rotate(x, y, verso=false) {
+            return [
+                x * this.#cost + y * this.#sint * (verso ? 1 : -1),
+                x * this.#sint * (verso ? -1 : 1) + y * this.#cost
+            ]
+        }
+
         make(dx, dy) {
             const w = this.#config.width / 2;
             const h = this.#config.height / 2;
-            const tx = dx * this.#cost + dy * this.#sint;
-            const ty = dx * -this.#sint + dy * this.#cost;
+            const [tx, ty] = this.#rotate(dx, dy, true);
             let d;
 
             if (tx > 0 && ty === 0) {
                 d = [
-                    'M', -w, -h * .8,
-                    'Q', tx / 2, -h * 1.6, tx + w, -h * .8,
-                    'L', tx + w, h * .8,
-                    'Q', tx / 2, h * 1.6, -w, h * .8, 'Z'
+                    'M', ...this.#rotate(-w, -h * .8),
+                    'Q', ...this.#rotate(tx / 2, -h * 1.6), ...this.#rotate(tx + w, -h * .8),
+                    'L', ...this.#rotate(tx + w, h * .8),
+                    'Q', ...this.#rotate(tx / 2, h * 1.6), ...this.#rotate(-w, h * .8), 'Z'
                 ];
             } else if (tx > 0 && ty > 0) {
                 d = [
-                    'M', -w, -h * .8,
-                    'Q', 0, -h * 1.6, w, -h * .8,
-                    'L', tx + w, ty - h * .8,
-                    'L', tx + w, ty + h * .8,
-                    'Q', tx, ty + h * 1.6, tx - w, ty + h * .8,
-                    'L', -w, h * .8, 'Z'
+                    'M', ...this.#rotate(-w, -h * .8),
+                    'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(w, -h * .8),
+                    'L', ...this.#rotate(tx + w, ty - h * .8),
+                    'L', ...this.#rotate(tx + w, ty + h * .8),
+                    'Q', ...this.#rotate(tx, ty + h * 1.6), ...this.#rotate(tx - w, ty + h * .8),
+                    'L', ...this.#rotate(-w, h * .8), 'Z'
                 ];
             } else if (tx === 0 && ty > 0) {
                 d = [
-                    'M', -w, -h * .8,
-                    'Q', 0, -h * 1.6, w, -h * .8,
-                    'L', w, ty + h * .8,
-                    'Q', 0, ty + h * 1.6, -w, ty + h * .8, 'Z'
+                    'M', ...this.#rotate(-w, -h * .8),
+                    'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(w, -h * .8),
+                    'L', ...this.#rotate(w, ty + h * .8),
+                    'Q', ...this.#rotate(0, ty + h * 1.6), ...this.#rotate(-w, ty + h * .8), 'Z'
                 ];
             } else if (tx < 0 && ty > 0) {
                 d = [
-                    'M', w, h * .8,
-                    'L', tx + w, ty + h * .8,
-                    'Q', tx, ty + h * 1.6, tx - w, ty + h * .8,
-                    'L', tx - w, ty - h * .8,
-                    'L', -w, -h * .8,
-                    'Q', 0, -h * 1.6, w, -h * .8, 'Z'
+                    'M',...this.#rotate( w, h * .8),
+                    'L', ...this.#rotate(tx + w, ty + h * .8),
+                    'Q', ...this.#rotate(tx, ty + h * 1.6), ...this.#rotate(tx - w, ty + h * .8),
+                    'L', ...this.#rotate(tx - w, ty - h * .8),
+                    'L', ...this.#rotate(-w, -h * .8),
+                    'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(w, -h * .8), 'Z'
                 ];
             } else if (tx < 0 && ty === 0) {
                 d = [
-                    'M', w, h * .8,
-                    'Q', tx / 2, h * 1.6, tx - w, h * .8,
-                    'L', tx - w, -h * .8,
-                    'Q', tx / 2, -h * 1.6, w, -h * .8, 'Z'
+                    'M', ...this.#rotate(w, h * .8),
+                    'Q', ...this.#rotate(tx / 2, h * 1.6), ...this.#rotate(tx - w, h * .8),
+                    'L', ...this.#rotate(tx - w, -h * .8),
+                    'Q', ...this.#rotate(tx / 2, -h * 1.6), ...this.#rotate(w, -h * .8), 'Z'
                 ];
             } else if (tx < 0 && ty < 0) {
                 d = [
-                    'M', w, h * .8,
-                    'Q', 0, h * 1.6, -w, h * .8,
-                    'L', tx - w, ty + h * .8,
-                    'L', tx - w, ty - h * .8,
-                    'Q', tx, ty - h * 1.6, tx + w, ty - h * .8,
-                    'L', w, -h * .8, 'Z'
+                    'M', ...this.#rotate(w, h * .8),
+                    'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(-w, h * .8),
+                    'L', ...this.#rotate(tx - w, ty + h * .8),
+                    'L', ...this.#rotate(tx - w, ty - h * .8),
+                    'Q', ...this.#rotate(tx, ty - h * 1.6), ...this.#rotate(tx + w, ty - h * .8),
+                    'L', ...this.#rotate(w, -h * .8), 'Z'
                 ];
             } else if (tx === 0 && ty < 0) {
                 d = [
-                    'M', w, h * .8,
-                    'Q', 0, h * 1.6, -w, h * .8,
-                    'L', -w, ty - h * .8,
-                    'Q', 0, ty - h * 1.6, w, ty - h * .8, 'Z'
+                    'M', ...this.#rotate(w, h * .8),
+                    'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(-w, h * .8),
+                    'L', ...this.#rotate(-w, ty - h * .8),
+                    'Q', ...this.#rotate(0, ty - h * 1.6), ...this.#rotate(w, ty - h * .8), 'Z'
                 ];
             } else if (tx > 0 && ty < 0) {
                 d = [
-                    'M', -w, -h * .8,
-                    'L', tx - w, ty - h * .8,
-                    'Q', tx, ty - h * 1.6, tx + w, ty - h * .8,
-                    'L', tx + w, ty + h * .8,
-                    'L', w, h * .8,
-                    'Q', 0, h * 1.6, -w, h * .8, 'Z'
+                    'M', ...this.#rotate(-w, -h * .8),
+                    'L', ...this.#rotate(tx - w, ty - h * .8),
+                    'Q', ...this.#rotate(tx, ty - h * 1.6), ...this.#rotate(tx + w, ty - h * .8),
+                    'L', ...this.#rotate(tx + w, ty + h * .8),
+                    'L', ...this.#rotate(w, h * .8),
+                    'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(-w, h * .8), 'Z'
                 ];
             } else {
                 d = [
-                    'M', h - w / 2, -h * .8,
-                    'A', h, h * .8, 0, '0 0', h - w / 2, h * .8,
-                    'Q', 0, h * 1.6, w, h * .8,
-                    'A', h, h * .8, 0, '0 0', w - h / 2, -h * .8,
-                    'Q', 0, -h * 1.6, h - w / 2, -h * .8, 'Z'
+                    'M', ...this.#rotate(h - w / 2, -h * .8),
+                    'A', h, h * .8, 0, '0 0', ...this.#rotate(h - w / 2, h * .8),
+                    'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(w, h * .8),
+                    'A', h, h * .8, 0, '0 0', ...this.#rotate(w - h / 2, -h * .8),
+                    'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(h - w / 2, -h * .8), 'Z'
                 ];
             }
         
@@ -208,8 +214,6 @@
 
         drawAtPoint({x, y}, dot=this.pen.make(0, 0)) {
             this.ctx.setTransform(1, 0, 0, 1, x + this.#at.x, y + this.#at.y);
-            this.ctx.rotate(this.#config.tilt * Math.PI / 180);
-
             this.ctx.fill(dot);
         }
     }
