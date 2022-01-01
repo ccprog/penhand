@@ -123,7 +123,8 @@ export class QuillWriter {
         speed: 100,
         wait: {
             turn: 200,
-            move: 500
+            move: 500,
+            space: 500
         },
         fill: 'black'
     };

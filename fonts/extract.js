@@ -12,7 +12,31 @@ const cheerio = require('cheerio');
         const title=$('title').text();
         const desc=$('desc').text();
 
-        const glyphs = {};
+        const meta = {
+             substitution: {},
+             requiredLigatures: []
+        };
+
+        $('lookup\\:table').each((i, table) => {
+            switch (table.attribs.id) {
+            case 'substitution':
+                $('lookup\\:entry', table).each((i, entry)=> {
+                    meta.substitution[entry.attribs.seq] = entry.attribs.use;
+                });
+                break;
+            case 'required-ligatures':
+                meta.requiredLigatures = $('lookup\\:entry', table).map((i, entry) => entry.attribs.use).get();
+            }
+        });
+
+        const glyphs = {
+            unknown: {
+                isolate: {
+                    advance: 0,
+                    strokes: []
+                }
+            }
+        };
 
         $('symbol')
         .filter((i, symbol) => symbol.attribs.id.startsWith('glyph'))
@@ -37,6 +61,10 @@ const cheerio = require('cheerio');
                     const lastRegular = strokes.filter(stroke => !stroke.late).pop();
                     lastRegular.pause = 'move';
                 }
+            } else {
+                strokes.push({
+                    pause: 'space'
+                });
             }
 
             if (!glyphs[name]) glyphs[name] = {};
@@ -46,7 +74,7 @@ const cheerio = require('cheerio');
             if (desc.length) glyphs[name][position].desc = desc.text();
         });
 
-        const data = JSON.stringify({ id: fontName, title, desc, glyphs });
+        const data = JSON.stringify({ id: fontName, title, desc, meta, glyphs });
 
         await writeFile(`fonts/${fontName}.json`, data);
     } catch (error) {

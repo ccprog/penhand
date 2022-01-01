@@ -2,6 +2,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1890" height="2478" viewBox="0 0 1890 2478">
   <title>Deutsche Kurrent</title>
   <desc>Handwriting script commonly used in German speaking countries in the 19th century.</desc>
+  <metadata xmlns:lookup="http://examöle.org/lookup">
+    <lookup:table id="substitution">
+      <lookup:entry seq="(^|\s)\u0022" use="$1„" />
+      <lookup:entry seq="\u0022($|\s)" use="“$1" />
+      <lookup:entry seq="(^|\s)'" use="$1‚" />
+      <lookup:entry seq="'" use="‛" />
+      <lookup:entry seq="(^|\s)-" use="$1–" />
+    </lookup:table>
+    <lookup:table id="required-ligatures">
+      <lookup:entry use="ch" />
+      <lookup:entry use="ck" />
+      <lookup:entry use="Ef" />
+      <lookup:entry use="Eh" />
+      <lookup:entry use="Ej" />
+      <lookup:entry use="Ep" />
+      <lookup:entry use="Ez" />
+      <lookup:entry use="Sk" />
+      <lookup:entry use="Ss" />
+      <lookup:entry use="St" />
+    </lookup:table>
+  </metadata>
   <!-- Display background defs -->
   <style>symbol { overflow: visible }</style>
   <symbol id="lineage">
