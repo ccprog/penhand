@@ -224,9 +224,12 @@ function computeFont(glyphs, step) {
 
     for (let glyph of Object.values(glyphs)) {
         for (let variant of Object.values(glyph)) {
-            if (!variant.strokes) continue;
-
             for (let stroke of variant.strokes) {
+                if (!stroke.d) {
+                    stroke.points = [];
+                    continue;
+                }
+
                 let points = uniqueStrokes.get(stroke.d);
                 if (!points) {
                     points = pathToPoints(stroke.d, step);

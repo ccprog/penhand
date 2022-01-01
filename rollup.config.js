@@ -9,5 +9,13 @@ export default [
             format: 'iife'
         },
         plugins: [nodeResolve(), commonjs()]
+    },
+    {
+        input: 'src/writeText.mjs',
+        output: {
+            file: 'writeText.js',
+            format: 'iife'
+        },
+        plugins: [nodeResolve(), commonjs()]
     }
 ];
