@@ -7,6 +7,7 @@
       <lookup:entry seq="(^|\s)\u0022" use="$1„" />
       <lookup:entry seq="\u0022($|\s)" use="“$1" />
       <lookup:entry seq="(^|\s)'" use="$1‚" />
+      <lookup:entry seq="(\d)'" use="$1’" />
       <lookup:entry seq="'" use="‘" />
       <lookup:entry seq="(^|\s)-" use="$1–" />
     </lookup:table>
@@ -54,6 +55,41 @@
       <lookup:entry use="ä" />
       <lookup:entry use="ö" />
       <lookup:entry use="ü" />
+    </lookup:subtable>
+    <lookup:subtable id="lower-final">
+      <lookup:entry use="a" />
+      <lookup:entry use="b" />
+      <lookup:entry use="c" />
+      <lookup:entry use="d" />
+      <lookup:entry use="e" />
+      <lookup:entry use="f" />
+      <lookup:entry use="g" />
+      <lookup:entry use="h" />
+      <lookup:entry use="i" />
+      <lookup:entry use="j" />
+      <lookup:entry use="k" />
+      <lookup:entry use="l" />
+      <lookup:entry use="m" />
+      <lookup:entry use="n" />
+      <lookup:entry use="o" />
+      <lookup:entry use="p" />
+      <lookup:entry use="q" />
+      <lookup:entry use="r" />
+      <lookup:entry use="ſ" />
+      <lookup:entry use="s" />
+      <lookup:entry use="ß" />
+      <lookup:entry use="t" />
+      <lookup:entry use="u" />
+      <lookup:entry use="v" />
+      <lookup:entry use="w" />
+      <lookup:entry use="x" />
+      <lookup:entry use="y" />
+      <lookup:entry use="z" />
+      <lookup:entry use="ä" />
+      <lookup:entry use="ö" />
+      <lookup:entry use="ü" />
+      <lookup:entry use="ch" />
+      <lookup:entry use="ck" />
     </lookup:subtable>
     <lookup:subtable id="lower-initial">
       <lookup:entry use="a" />
@@ -202,12 +238,48 @@
       <lookup:entry use="Ö" />
       <lookup:entry use="Q" />
     </lookup:subtable>
+    <lookup:subtable id="number-right-wide">
+      <lookup:entry use="0" />
+      <lookup:entry use="8" />
+    </lookup:subtable>
+    <lookup:subtable id="number-right-gap">
+      <lookup:entry use="4" />
+      <lookup:entry use="7" />
+    </lookup:subtable>
+    <lookup:subtable id="number-high">
+      <lookup:entry use="6" />
+    </lookup:subtable>
+    <lookup:subtable id="number-small">
+      <lookup:entry use="1" />
+      <lookup:entry use="2" />
+      <lookup:entry use="3" />
+      <lookup:entry use="5" />
+      <lookup:entry use="9" />
+    </lookup:subtable>
+    <lookup:subtable id="number">
+      <lookup:entry use="1" />
+      <lookup:entry use="2" />
+      <lookup:entry use="3" />
+      <lookup:entry use="4" />
+      <lookup:entry use="5" />
+      <lookup:entry use="6" />
+      <lookup:entry use="7" />
+      <lookup:entry use="8" />
+      <lookup:entry use="9" />
+      <lookup:entry use="0" />
+    </lookup:subtable>
+    <lookup:subtable id="number-punctuation">
+      <lookup:entry use="," />
+      <lookup:entry use="." />
+      <lookup:entry use="’" />
+    </lookup:subtable>
     <lookup:table id="pairwise-kerning">
       <lookup:entry first="lower-d" second="lower-sling-up" use="6" />
       <lookup:entry first="lower-d" second="space" use="6" />
       <lookup:entry first="lower-d" second="upper-left-mid" use="12" />
       <lookup:entry first="lower-d" second="upper-left-high" use="18" />
       <lookup:entry first="lower-d" second="upper-left-full" use="24" />
+      <lookup:entry first="lower-d" second="number" use="6" />
       <lookup:entry first="lower-s" second="upper-left-mid" use="6" />
       <lookup:entry first="lower-s" second="upper-left-high" use="12" />
       <lookup:entry first="lower-s" second="upper-left-full" use="12" />
@@ -215,18 +287,23 @@
       <lookup:entry first="lower-initial" second="upper-left-mid" use="18" />
       <lookup:entry first="lower-initial" second="upper-left-high" use="6" />
       <lookup:entry first="lower-initial" second="upper-left-full" use="24" />
+      <lookup:entry first="lower-initial" second="number" use="18" />
       <lookup:entry first="lower-isolate" second="upper-left-mid" use="-6" />
       <lookup:entry first="lower-isolate" second="upper-left-high" use="-24" />
+      <lookup:entry first="lower-isolate" second="number" use="-6" />
       <lookup:entry first="upper-D" second="lower-diacrit" use="-6" />
       <lookup:entry first="upper-D" second="lower-x-up" use="-6" />
+      <lookup:entry first="upper-D" second="number" use="-6" />
       <lookup:entry first="upper-F" second="lower-x-up" use="-6" />
       <lookup:entry first="upper-S" second="lower-x-up" use="-18" />
       <lookup:entry first="upper-S" second="lower-diacrit" use="-18" />
       <lookup:entry first="upper-S" second="small-punctuation" use="-12" />
+      <lookup:entry first="upper-S" second="number" use="-6" />
       <lookup:entry first="upper-initial" second="upper-left-low" use="24" />
       <lookup:entry first="upper-initial" second="upper-left-mid" use="18" />
       <lookup:entry first="upper-initial" second="upper-left-high" use="6" />
       <lookup:entry first="upper-initial" second="upper-left-full" use="24" />
+      <lookup:entry first="upper-initial" second="number" use="18" />
       <lookup:entry first="upper-fakeinitial" second="upper-left-low" use="24" />
       <lookup:entry first="upper-fakeinitial" second="upper-left-mid" use="18" />
       <lookup:entry first="upper-fakeinitial" second="upper-left-high" use="12" />
@@ -242,6 +319,28 @@
       <lookup:entry first="upper-S" second="upper-left-mid" use="-12" />
       <lookup:entry first="upper-S" second="upper-left-high" use="6" />
       <lookup:entry first="upper-S" second="upper-left-full" use="6" />
+      <lookup:entry first="number-small" second="upper-left-low" use="6" />
+      <lookup:entry first="number-small" second="upper-left-mid" use="6" />
+      <lookup:entry first="number-small" second="upper-left-high" use="6" />
+      <lookup:entry first="number-small" second="upper-left-full" use="6" />
+      <lookup:entry first="number-small" second="lower-final" use="24" />
+      <lookup:entry first="number-right-gap" second="upper-left-low" use="6" />
+      <lookup:entry first="number-right-gap" second="upper-left-mid" use="6" />
+      <lookup:entry first="number-right-gap" second="upper-left-high" use="6" />
+      <lookup:entry first="number-right-gap" second="upper-left-full" use="6" />
+      <lookup:entry first="number-right-gap" second="lower-final" use="12" />
+      <lookup:entry first="number-high" second="upper-left-low" use="6" />
+      <lookup:entry first="number-high" second="upper-left-mid" use="6" />
+      <lookup:entry first="number-high" second="upper-left-high" use="6" />
+      <lookup:entry first="number-high" second="upper-left-full" use="6" />
+      <lookup:entry first="number-high" second="lower-final" use="18" />
+      <lookup:entry first="number-right-wide" second="upper-left-low" use="6" />
+      <lookup:entry first="number-right-wide" second="upper-left-mid" use="12" />
+      <lookup:entry first="number-right-wide" second="upper-left-high" use="12" />
+      <lookup:entry first="number-right-wide" second="upper-left-full" use="12" />
+      <lookup:entry first="number-right-wide" second="lower-final" use="18" />
+      <lookup:entry first="number" second="number-punctuation" use="-12" />
+      <lookup:entry first="number-punctuation" second="number" use="-12" />
     </lookup:table>
   </metadata>
   <!-- Display background defs -->
@@ -1208,6 +1307,11 @@
     <title>left single quotation</title>
     <use xlink:href="#limit_s" />
     <path d="M 59.4,0 Q 40.2,16 36.6,24" />
+  </symbol>
+  <symbol id="glyph_’_isolate" viewBox="0 0 60 120">
+    <title>right single quotation</title>
+    <use xlink:href="#limit_s" />
+    <path d="M 68.4,0 Q 50.4,20 42.6,24" />
   </symbol>
   <symbol id="glyph_“_isolate" viewBox="0 0 60 120">
     <title>left double quotation</title>
