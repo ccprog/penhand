@@ -9,8 +9,8 @@ const cheerio = require('cheerio');
         const fontName = basename(path, '.svg');
         const $ = cheerio.load(source, { xmlMode: true });
 
-        const title=$('title').text();
-        const desc=$('desc').text();
+        const title=$('svg>title').text();
+        const desc=$('svg>desc').text();
 
         const meta = {
             subtables: {},
