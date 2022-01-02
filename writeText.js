@@ -2672,6 +2672,8 @@
 
                 this.glyphs = font.glyphs;
                 this.ligatures = font.meta.requiredLigatures;
+                this.subtables = Object.entries(font.meta.subtables);
+                this.kerning = font.meta.pairwiseKerning;
                 this.substitution = Object.entries(font.meta.substitution).map(([test, subst]) => {
                     return [new RegExp(test, 'g'), subst];
                 });
@@ -2706,13 +2708,30 @@
             return seq;
         }
 
+        #findKerning(first, second) {
+            const firstsub = this.subtables
+                .filter(([, st]) => st.includes(first))
+                .map(([id])=>id);
+            const secondsub = this.subtables
+                .filter(([, st]) => st.includes(second))
+                .map(([id])=>id);
+
+            const pair = this.kerning.find(e => {
+                return firstsub.includes(e.first) && secondsub.includes(e.second);
+            });
+
+            return pair?.use ?? 0;
+        }
+
         #order(selection) {
             const instruction = [];
             const late = [];
             let position = 0;
 
-            for (const {glyph, variant} of selection) {
+            for (const {glyph, variant, kerning} of selection) {
                 const { strokes, advance } = this.glyphs[glyph][variant];
+
+                position += kerning;
 
                 const wait = strokes.filter(s => s.late);
                 if (wait.length) {
@@ -2742,12 +2761,13 @@
             const selection = [];
 
             seq.forEach((glyph, i) => {
-                const select = { glyph, variant: 'isolate' };
+                const select = { glyph, variant: 'isolate', kerning: 0 };
 
-                const canBackward = i > 0 && 
-                    ['initial', 'medial'].includes(selection[i - 1].variant);
-                const canForward = seq[i + 1] && this.glyphs[seq[i + 1]] &&
-                    (this.glyphs[seq[i + 1]].final || this.glyphs[seq[i + 1]].medial);
+                const last = selection[i - 1];
+                const next = seq[i + 1] && this.glyphs[seq[i + 1]];
+
+                const canBackward = ['initial', 'medial'].includes(last?.variant);
+                const canForward = next?.final || next?.medial;
 
                 if (this.glyphs[glyph]) {
                     if (canBackward) {
@@ -2756,8 +2776,14 @@
                         } else {
                             select.variant = 'final';
                         }
-                    } else if (canForward && this.glyphs[glyph].initial) {
-                        select.variant = 'initial';
+                    } else {
+                        if (canForward && this.glyphs[glyph].initial) {
+                            select.variant = 'initial';
+                        }
+
+                        if (i > 0) {
+                            select.kerning = this.#findKerning(last.glyph, glyph);
+                        }
                     }
                 } else {
                     select.glyph = ' ';

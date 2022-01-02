@@ -13,9 +13,16 @@ const cheerio = require('cheerio');
         const desc=$('desc').text();
 
         const meta = {
-             substitution: {},
-             requiredLigatures: []
+            subtables: {},
+            substitution: {},
+            requiredLigatures: [],
+            pairwiseKerning: []
         };
+
+        $('lookup\\:subtable').each((i, table) => {
+            const subtable = $('lookup\\:entry', table).map((i, entry) => entry.attribs.use).get();
+            meta.subtables[table.attribs.id] = subtable;
+        });
 
         $('lookup\\:table').each((i, table) => {
             switch (table.attribs.id) {
@@ -26,6 +33,12 @@ const cheerio = require('cheerio');
                 break;
             case 'required-ligatures':
                 meta.requiredLigatures = $('lookup\\:entry', table).map((i, entry) => entry.attribs.use).get();
+                break;
+            case 'pairwise-kerning':
+                meta.pairwiseKerning = $('lookup\\:entry', table).map((i, entry) => {
+                    return { ...entry.attribs, use: parseFloat(entry.attribs.use) }
+                }).get();
+                break;
             }
         });
 
