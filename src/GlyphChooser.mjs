@@ -1,7 +1,7 @@
 import { computeFont } from './pathToPoints.mjs';
 
 export default class GlyphChooser {
-    constructor (url, step) {
+    constructor (url, tolerance) {
         return (async () => {
             const res = await fetch(url);
             const font = await res.json();
@@ -14,14 +14,14 @@ export default class GlyphChooser {
                 return [new RegExp(test, 'g'), subst];
             });
 
-            await this.compute(step);
+            await this.compute(tolerance);
 
             return this;
         })();
     }
 
-    async compute(step) {
-        await computeFont(this.glyphs, step);
+    async compute(tolerance) {
+        await computeFont(this.glyphs, tolerance);
     }
 
     substitute(txt) {

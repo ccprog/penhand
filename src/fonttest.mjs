@@ -3,17 +3,21 @@ import { computeFont } from './pathToPoints.mjs';
 
 const config = {
   wait: {
-    turn: 200,
-    move: 500
+      turn: 200,
+      move: 500,
+      space: 500
   },
-  speed: 80,
-  delta: 0.5,
-  fill: '#391b0c'
+  speed: 120
 };
 
 const pen = {
-  type: 'Broadpen'
+  type: 'Ballpen',
+  config: {
+      fill: '#391b0c'
+  }
 }
+
+const tolerance = 0.1;
 
 const userInput = (resolve) => {
   button.addEventListener('click', () => {
@@ -33,7 +37,7 @@ board.ctx.font = '18px sans-serif';
   const data = await res.json();
   console.log(data.id, data.desc);
 
-  await computeFont(data.glyphs, board.config.delta);
+  await computeFont(data.glyphs, tolerance);
 
   for (const [name, variants] of Object.entries(data.glyphs)) {
     button.disabled = false;

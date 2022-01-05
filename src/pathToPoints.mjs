@@ -1,247 +1,150 @@
-import pathParser from 'pathfit/src/pathParser.js';
-import { Bezier } from "bezier-js";
+import parse from './parse.mjs';
 
-function addTo(p1, p2) {
-    p1.x += p2.x;
-    p1.y += p2.y;
-}
-
-function transform(x, y, angle, dx=0, dy=0) {
+function avg(p1, p2) {
     return {
-        x: (x * Math.cos(angle) + y * Math.sin(angle)) + dx,
-        y: -x * Math.sin(angle) + y * Math.cos(angle) + dy
+        x: (p1.x + p2.x) / 2,
+        y: (p1.y + p2.y) / 2
     };
 }
 
-function meridianLength(angle, a, b) {
-    const n = (a - b) / (a + b);
-
-    let series =    (1 + Math.pow(n, 2) / 4 + Math.pow(n, 4) / 64) * angle;
-    series -=   3 * (n / 2                  - Math.pow(n, 3) / 16) * Math.sin(2 * angle);
-    series +=  15 * (Math.pow(n, 2) / 16    - Math.pow(n, 4) / 64) * Math.sin(4 * angle);
-    series -=  35 * (Math.pow(n, 3) / 48                         ) * Math.sin(6 * angle);
-    series += 315 * (Math.pow(n, 4) / 512                        ) * Math.sin(8 * angle);
-
-    return (a + b) / 2 * series;
+function distance(p1, p2) {
+    return Math.hypot(p2.y - p1.y, p2.x - p1.x);
 }
 
-const divide = {
-    L: function (segment, step) {
-        const {from, to} = segment;
+function isFlatEnough(segment, tol) {
+    const { from, to, control_1, control_2 } = segment;
 
-        const length = Math.hypot(to.x - from.x, to.y - from.y);
-        const number = Math.round(length / step);
+    if (segment.command == 'C') {
+        const ux = 3 * control_1.x - 2 * from.x - to.x;
+        const uy = 3 * control_1.y - 2 * from.y - to.y;
+        const vx = 3 * control_2.x - 2 * to.x - from.x;
+        const vy = 3 * control_2.y - 2 * to.y - from.y;
 
-        const points = [];
-        for (let dist = 0; dist <= number; dist++) {
-            points.push({
-                x: from.x + dist * (to.x - from.x) / number,
-                y: from.y + dist * (to.y - from.y) / number
-            });
-        }
+        return Math.max(ux*ux, vx*vx) + Math.max(uy*uy, vy*vy) <= 16 * tol*tol;
+    } else {
+        const ux = 2 * control_1.x - from.x - to.x;
+        const uy = 2 * control_1.y - from.y - to.y;
 
-        return points;
-    },
-    
-    A: function (segment, step) {
-        const {from, to, rotation, large_arc, sweep} = segment;
-        let {rx, ry} = segment;
-        const angle = rotation/180*Math.PI;
-
-        const h = transform(
-            (from.x - to.x) / 2, 
-            (from.y - to.y) / 2, 
-            angle
-        );
-
-        const lambda = h.x*h.x/rx/rx + h.y*h.y/ry/ry;
-        if (lambda > 1) {
-            rx *= Math.sqrt(lambda);
-            ry *= Math.sqrt(lambda);
-        }
-
-        const sign = large_arc === sweep ? -1 : 1;
-        const f = sign * Math.sqrt((rx*rx*ry*ry - rx*rx*h.y*h.y - ry*ry*h.x*h.x)/(rx*rx*h.y*h.y + ry*ry*h.x*h.x));
-
-        const centerH = {
-            x: f * rx / ry * h.y, 
-            y: -f * ry / rx * h.x
-        }
-
-        let angleFrom = Math.atan2(
-            (h.y - centerH.y) / ry,
-            (h.x - centerH.x) / rx
-        );
-        let angleTo = Math.atan2(
-            (-h.y - centerH.y) / ry,
-            (-h.x - centerH.x) / rx
-        );
-        if (angleTo > angleFrom && !sweep) angleTo -=  2*Math.PI;
-        if (angleTo < angleFrom && sweep) angleTo +=  2*Math.PI;
-
-        const lengthFrom = meridianLength(angleFrom, rx, ry);
-        const lengthTo = meridianLength(angleTo, rx, ry);
-        const number = Math.abs(Math.round((lengthTo - lengthFrom) / step));
-
-        const points = [];
-        for (let dist = 0; dist <= number; dist++) {
-            points.push({
-                x: Math.cos(angleFrom + dist * (angleTo - angleFrom) / number) * rx + centerH.x,
-                y: Math.sin(angleFrom + dist * (angleTo - angleFrom) / number) * ry + centerH.y
-            });
-        }
-
-        return points.map(p => transform(
-            p.x, 
-            p.y, 
-            -angle,
-            (from.x + to.x) / 2, 
-            (from.y + to.y) / 2
-        ));
-    },
-
-    Q: function (segment, step) {
-        const bez = new Bezier(
-            segment.from.x,
-            segment.from.y,
-            segment.control_1.x,
-            segment.control_1.y,
-            segment.to.x,
-            segment.to.y,
-        );
-
-        const length = bez.length();
-        const number = Math.round(length / step);
-
-        //see https://github.com/Pomax/bezierjs/issues/165
-        return bez.getLUT(number + 2);
-    },
-
-    C: function (segment, step) {
-        const bez = new Bezier(
-            segment.from.x,
-            segment.from.y,
-            segment.control_1.x,
-            segment.control_1.y,
-            segment.control_2.x,
-            segment.control_2.y,
-            segment.to.x,
-            segment.to.y,
-        );
-
-        const length = bez.length();
-        const number = Math.round(length / step);
-
-        //see https://github.com/Pomax/bezierjs/issues/165
-        return bez.getLUT(number + 2);
+        return ux*ux + uy*uy <= 16 * tol*tol;
     }
 }
 
-function astCommand(result, current) {
-    if (current.command === 'Z') {
-        const from = result.slice(-1)[0].to;
-        const to = result.slice(0, 1)[0].from;
-        result.push(astArgument({ command: 'L', from, to }));
-    } else  if (current.command === 'M') {
-        const first = {
-            command: 'M',
-            to: current.sequence.shift().coordinate_pair
-        };
-        if (current.relative) {
-            addTo(first.to, result.slice(-1)[0].to);
-        }
-        result.push(first);
+function subdivide(segment) {
+    if (segment.command == 'C') {
+        const m = avg(segment.control_1, segment.control_2);
+        const l1 = avg(segment.from, segment.control_1);
+        const r2 = avg(segment.to, segment.control_2);
+        const l2 = avg(l1, m);
+        const r1 = avg(r2, m);
+        const l3 = avg(l2, r1);
+
+        return [
+            { ...segment, to: l3, control_1: l1, control_2: l2 },
+            { ...segment, from: l3, control_1: r1, control_2: r2 },
+        ];
+    } else {
+        const l = avg(segment.from, segment.control_1);
+        const r = avg(segment.to, segment.control_1);
+        const m = avg(l, r);
+
+        return [
+            { ...segment, to: m, control_1: l },
+            { ...segment, from: m, control_1: r },
+        ];
     }
-    current.sequence.forEach(args => {
-        const previous = result.slice(-1)[0];
-        result.push(astArgument(current.command, current.relative, args, previous));
+}
+
+function push(lines, point) {
+    const lastLine = lines[lines.length - 1];
+
+    lines.push({
+        to: point,
+        d: lastLine.d + distance(lastLine.to, point)
     });
-
-    return result;
 }
 
-function astArgument(command, relative, args, previous) {
-    const segment = {...args};
-    delete segment.coordinate_pair;
-    delete segment.coordinate;
+function flattenBezier(tol, lines, segment) {
+    if (isFlatEnough(segment, tol)) {
+        push(lines, segment.to);
+    } else {
+        const [left, right] = subdivide(segment);
+        flattenBezier(tol, lines, left);
+        flattenBezier(tol, lines, right);
+    }
+}
 
-    segment.from = previous.to;
-    segment.to = args.coordinate_pair;
-
-    if (relative) {
-        addTo(segment.to, previous.to);
-        if (segment.control_1) {
-            addTo(segment.control_1, segment.from);
-        }
-        if (segment.control_2) {
-            addTo(segment.control_2, segment.from);
-        }
+function getCount(r, sweep, tol) {
+    let k = 0, d = r*.134;
+    while (d > tol && k < 6) {
+        d = r * (1 - Math.sqrt(1 - 1 / (1 << (2 * k + 2))));
+        k++;
     }
 
-    switch (command) {
-    case 'H':
-        segment.to= { x: args.coordinate, y: segment.from.y }
-        segment.command = 'L'
+    return Math.ceil(sweep * (1<<k));
+}
+
+function flattenArc(tol, lines, segment) {
+    const { angleFrom, angleTo, rx, ry, transform } = segment;
+
+    const sweep = Math.abs(angleTo - angleFrom);
+    const count = getCount(rx, sweep, tol);
+
+    for (let i = 1; i <= count; i++) {
+        const f = angleFrom * (count - i)/count + angleTo * (i) / count;
+        const m = transform(
+            Math.cos(f) * rx,
+            Math.sin(f) * ry
+        );
+
+        push(lines, m);
+    }
+}
+
+function flattenCurve(tol, lines, segment) {
+    switch (segment.command) {
+    case 'L':
+        push(lines, segment.to);
         break;
-    case 'V':
-        segment.to= { x: segment.from.x, y: args.coordinate }
-        segment.command = 'L'
+    case 'C':
+    case 'Q':
+        flattenBezier(tol, lines, segment);
         break;
-    case 'M':
-        segment.command = 'L'
+    case 'A':
+        flattenArc(tol, lines, segment);
         break;
-    case 'S':
-        segment.control_2 = segment.control_1;
-        segment.control_1.x = 2*from.x - (previous.control_2 ? previous.control_2.x : previous.control_1.x);
-        segment.control_1.y = 2*from.y - (previous.control_2 ? previous.control_2.y : previous.control_1.y);
-        segment.command = 'C';
-        break;
-    case 'T':
-        segment.control_1.x = 2*from.x - (previous.control_2 ? previous.control_2.x :previous.control_1.x);
-        segment.control_1.y = 2*from.y - (previous.control_2 ? previous.control_2.y :previous.control_1.y);
-        segment.command = 'Q';
-        break;
-    default:
-        segment.command = command
     }
 
-    return segment;
+    return lines;
 }
 
-function pathToPoints(d, step) {
-    const ast = new pathParser().parse(d);
-    const sequence_ = ast.reduce(astCommand, [])
-    const sequence = sequence_.filter(segment => segment.from !== undefined);
+export function pathToPoints(d, tolerance) {
+    const sequence = parse(d);
+    const start = { to: sequence[0].from, d: 0 };
 
-    const parts = sequence.map(segment => divide[segment.command](segment, step));
-    const last = parts.splice(-1)[0];
-
-    return parts.reduce((list, part) => list.concat(part.slice(0, -1)), []).concat(last);
+    return sequence.reduce(flattenCurve.bind(null, tolerance), [start]);
 }
 
-function computeFont(glyphs, step) {
+export function computeFont(glyphs, tolerance) {
     const uniqueStrokes = new Map();
 
     for (let glyph of Object.values(glyphs)) {
         for (let variant of Object.values(glyph)) {
             for (let stroke of variant.strokes) {
                 if (!stroke.d) {
-                    stroke.points = [];
+                    stroke.steps = [];
                     continue;
                 }
 
-                let points = uniqueStrokes.get(stroke.d);
-                if (!points) {
-                    points = pathToPoints(stroke.d, step);
-                    uniqueStrokes.set(stroke.d, points);
+                let lines = uniqueStrokes.get(stroke.d);
+                if (!lines) {
+                    lines = pathToPoints(stroke.d, tolerance);
+                    uniqueStrokes.set(stroke.d, lines);
                 }
 
-                stroke.points = points;
+                stroke.lines = lines;
             }
         }
     }
 
     return Promise.resolve();
 }
-
-export { pathToPoints, computeFont };

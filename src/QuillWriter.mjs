@@ -4,132 +4,114 @@ class Broadpen {
         height: 1,
         tilt: -40
     };
-    #cost;
-    #sint;
+    #style = {
+        lineWidth: 1,
+        lineJoin: 'round',
+        fillStyle: 'black',
+        strokeStyle: 'black'
+    }
+    #point;
 
     constructor(config) {
         this.config = config;
     }
 
     set config(config = {}) {
+        if (config.height > config.width) {
+            throw new Error('pen height must be smaller than width');
+        }
+
         Object.assign(this.#config, config);
 
-        this.#cost = Math.cos(this.#config.tilt * Math.PI / 180);
-        this.#sint = Math.sin(this.#config.tilt * Math.PI / 180);
+        // make sure lines get not too skinny
+        this.#style.lineWidth = Math.max(this.#config.height, 1.4);
+        this.#style.strokeStyle = this.#style.fillStyle = this.#config.fill;
+
+        const cost = Math.cos(this.#config.tilt * Math.PI / 180);
+        const sint = Math.sin(this.#config.tilt * Math.PI / 180);
+        const w = (this.#config.width - this.#config.height) / 2;
+        this.#point = {
+            x: w * cost,
+            y: w * sint,
+            mx: this.#config.height * 0.6 * sint,
+            my: this.#config.height * 0.6 * -cost
+        };
     }
 
     get config() {
-        return Object.assign({}, this.#config);
+        return {...this.#config};
     }
 
-    #rotate(x, y, verso=false) {
-        return [
-            x * this.#cost + y * this.#sint * (verso ? 1 : -1),
-            x * this.#sint * (verso ? -1 : 1) + y * this.#cost
-        ]
+    get style() {
+        return {...this.#style};
     }
 
-    make(dx, dy) {
-        const w = this.#config.width / 2;
-        const h = this.#config.height / 2;
-        const [tx, ty] = this.#rotate(dx, dy, true);
-        let d;
-
-        if (tx > 0 && ty === 0) {
-            d = [
-                'M', ...this.#rotate(-w, -h * .8),
-                'Q', ...this.#rotate(tx / 2, -h * 1.6), ...this.#rotate(tx + w, -h * .8),
-                'L', ...this.#rotate(tx + w, h * .8),
-                'Q', ...this.#rotate(tx / 2, h * 1.6), ...this.#rotate(-w, h * .8), 'Z'
+    make(p1, p2=p1) {
+        const o = this.#point;
+        let d = [
+                'M', p1.x + o.x, p1.y + o.y,
+                p1.x - o.x, p1.y - o.y,
+                p2.x - o.x, p2.y - o.y,
+                p2.x + o.x, p2.y + o.y, 'Z'
             ];
-        } else if (tx > 0 && ty > 0) {
-            d = [
-                'M', ...this.#rotate(-w, -h * .8),
-                'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(w, -h * .8),
-                'L', ...this.#rotate(tx + w, ty - h * .8),
-                'L', ...this.#rotate(tx + w, ty + h * .8),
-                'Q', ...this.#rotate(tx, ty + h * 1.6), ...this.#rotate(tx - w, ty + h * .8),
-                'L', ...this.#rotate(-w, h * .8), 'Z'
-            ];
-        } else if (tx === 0 && ty > 0) {
-            d = [
-                'M', ...this.#rotate(-w, -h * .8),
-                'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(w, -h * .8),
-                'L', ...this.#rotate(w, ty + h * .8),
-                'Q', ...this.#rotate(0, ty + h * 1.6), ...this.#rotate(-w, ty + h * .8), 'Z'
-            ];
-        } else if (tx < 0 && ty > 0) {
-            d = [
-                'M',...this.#rotate( w, h * .8),
-                'L', ...this.#rotate(tx + w, ty + h * .8),
-                'Q', ...this.#rotate(tx, ty + h * 1.6), ...this.#rotate(tx - w, ty + h * .8),
-                'L', ...this.#rotate(tx - w, ty - h * .8),
-                'L', ...this.#rotate(-w, -h * .8),
-                'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(w, -h * .8), 'Z'
-            ];
-        } else if (tx < 0 && ty === 0) {
-            d = [
-                'M', ...this.#rotate(w, h * .8),
-                'Q', ...this.#rotate(tx / 2, h * 1.6), ...this.#rotate(tx - w, h * .8),
-                'L', ...this.#rotate(tx - w, -h * .8),
-                'Q', ...this.#rotate(tx / 2, -h * 1.6), ...this.#rotate(w, -h * .8), 'Z'
-            ];
-        } else if (tx < 0 && ty < 0) {
-            d = [
-                'M', ...this.#rotate(w, h * .8),
-                'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(-w, h * .8),
-                'L', ...this.#rotate(tx - w, ty + h * .8),
-                'L', ...this.#rotate(tx - w, ty - h * .8),
-                'Q', ...this.#rotate(tx, ty - h * 1.6), ...this.#rotate(tx + w, ty - h * .8),
-                'L', ...this.#rotate(w, -h * .8), 'Z'
-            ];
-        } else if (tx === 0 && ty < 0) {
-            d = [
-                'M', ...this.#rotate(w, h * .8),
-                'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(-w, h * .8),
-                'L', ...this.#rotate(-w, ty - h * .8),
-                'Q', ...this.#rotate(0, ty - h * 1.6), ...this.#rotate(w, ty - h * .8), 'Z'
-            ];
-        } else if (tx > 0 && ty < 0) {
-            d = [
-                'M', ...this.#rotate(-w, -h * .8),
-                'L', ...this.#rotate(tx - w, ty - h * .8),
-                'Q', ...this.#rotate(tx, ty - h * 1.6), ...this.#rotate(tx + w, ty - h * .8),
-                'L', ...this.#rotate(tx + w, ty + h * .8),
-                'L', ...this.#rotate(w, h * .8),
-                'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(-w, h * .8), 'Z'
-            ];
-        } else {
-            d = [
-                'M', ...this.#rotate(h - w / 2, -h * .8),
-                'A', h, h * .8, 0, '0 0', ...this.#rotate(h - w / 2, h * .8),
-                'Q', ...this.#rotate(0, h * 1.6), ...this.#rotate(w, h * .8),
-                'A', h, h * .8, 0, '0 0', ...this.#rotate(w - h / 2, -h * .8),
-                'Q', ...this.#rotate(0, -h * 1.6), ...this.#rotate(h - w / 2, -h * .8), 'Z'
-            ];
-        }
     
         return new Path2D(d.join(' '));
     }
 }
 
-const pens = { Broadpen };
+class Ballpen {
+    #config = {
+        size: 2
+    };
+    #style = {
+        lineWidth: 2,
+        lineJoin: 'round',
+        strokeStyle: 'black'
+    }
+
+    constructor(config) {
+        this.config = config;
+    }
+
+    set config(config = {}) {
+        if (config.height > config.width) {
+            throw new Error('pen height must be smaller than width');
+        }
+
+        Object.assign(this.#config, config);
+
+        this.#style.lineWidth = this.#config.size;
+        this.#style.strokeStyle = this.#config.fill;
+    }
+
+    get config() {
+        return {...this.#config};
+    }
+
+    get style() {
+        return {...this.#style};
+    }
+
+    make(p1, p2=p1) {
+        return new Path2D(`M ${p1.x},${p1.y} ${p2.x},${p2.y}`);
+    }
+}
+
+const pens = { Ballpen, Broadpen };
 
 export const penNames = Object.keys(pens);
 
 export class QuillWriter {
     #config = {
-        delta: 1,
         speed: 100,
         wait: {
             turn: 200,
             move: 500,
             space: 500
-        },
-        fill: 'black'
+        }
     };
+    #pen;
     #drawing = false;
-    #at;
     #restart;
     strokes;
     #buffer;
@@ -137,17 +119,25 @@ export class QuillWriter {
     constructor(canvas, config, pen) {
         this.ctx = canvas.getContext('2d');
         this.config = config;
-        this.pen = new pens[pen.type](pen.config);
+        this.pen = pen;
     }
 
     set config(config = {}) {
         Object.assign(this.#config, config);
-
-        this.ctx.fillStyle = this.#config.fill;
     }
 
     get config() {
         return Object.assign({}, this.#config);
+    }
+
+    set pen(pen) {
+        if (pen.type && !(this.#pen instanceof pens[pen.type])) {
+            this.#pen = new pens[pen.type](pen.config);
+        }
+
+        for (const [style, value] of Object.entries(this.#pen.style)) {
+            this.ctx[style] = value;
+        }
     }
 
     clear () {
@@ -159,19 +149,19 @@ export class QuillWriter {
         if (this.#drawing) {
             throw new Error('already running');
         } else {
-            this.strokes = strokes;
             this.#drawing = true;
-            this.#at = {x: 0, y: 0, ...at};
+            this.ctx.setTransform(1, 0, 0, 1, at.x ?? 0, at.y ?? 0);
 
             this.#restart = performance.now();
             //console.log(`start drawing...`);
 
-            for (let stroke of this.strokes) {
+            for (let stroke of strokes) {
                 this.#buffer = stroke;
                 stroke.perf = [];
 
                 await this.#drawStroke();
             }
+            console.log(strokes.map(s=>s.perf))
 
             this.#drawing = false;
         }
@@ -180,8 +170,9 @@ export class QuillWriter {
     #drawStroke() {
         this.#restart = performance.now();
 
-        return new Promise((resolve, reject) => {
-            requestAnimationFrame(this.#drawStep.bind(this, 0, resolve));
+        return new Promise(resolve => {
+            const end = this.#buffer.lines.slice(-1)[0].d;
+            requestAnimationFrame(this.#drawFrame.bind(this, 0, end, resolve));
         }).then((result) => {
             //console.log(result);
 
@@ -190,30 +181,49 @@ export class QuillWriter {
         });
     }
 
-    #drawStep(isAt, resolve, t) {
-        const dur = Math.max(0, (t - this.#restart) / 1000);
-        const len = Math.ceil(dur * this.#config.speed / this.#config.delta);
-
-        const slice = this.#buffer.points.slice(isAt, len + 1);
-        for (let i = 0; i < slice.length - 1; i++) {
-            const dx = slice[i+1].x - slice[i].x;
-            const dy = slice[i+1].y - slice[i].y;
-            const dot = this.pen.make(dx, dy);
-            this.drawAtPoint(slice[i], dot);
+    #divide(line1, line2, pos) {
+        const t = (pos - line1.d) / (line2.d - line1.d);
+        return {
+            x: line1.to.x * (1-t) + line2.to.x * t,
+            y: line1.to.y * (1-t) + line2.to.y * t,
         }
-        this.#buffer.perf.push({ dur, isAt, len })
-
-        isAt += slice.length - 1;
-
-        if (isAt >= this.#buffer.points.length - 1) {
-            return resolve(`stroke with ${this.#buffer.points.length} points drawn`);
-        }
-
-        requestAnimationFrame(this.#drawStep.bind(this, isAt, resolve));
     }
 
-    drawAtPoint({x, y}, dot=this.pen.make(0, 0)) {
-        this.ctx.setTransform(1, 0, 0, 1, x + this.#at.x, y + this.#at.y);
-        this.ctx.fill(dot);
+    #drawFrame(isAt, end, resolve, t) {
+        const dur = Math.max(0, (t - this.#restart) / 1000);
+        const goesTo = dur * this.#config.speed;
+        let f = 0, p = 0;
+
+        for (const [i, line] of this.#buffer.lines.entries()) {
+            if (!i || (line.d < isAt)) continue;
+
+            const lastLine = this.#buffer.lines[i-1];
+
+            if (goesTo > line.d) {
+                this.drawAt(lastLine.to, line.to);
+                f++
+            } else {
+                // this includes the case goesTo == lastLine.d
+                const to = this.#divide(lastLine, line, goesTo);
+                this.drawAt(lastLine.to, to);
+                p++
+                break;
+            }
+        }
+        this.#buffer.perf.push([goesTo - isAt, f, p])
+
+        isAt = goesTo;
+
+        if (isAt >= end) {
+            return resolve(`stroke of length=${end} drawn`);
+        }
+
+        requestAnimationFrame(this.#drawFrame.bind(this, isAt, end, resolve));
+    }
+
+    drawAt(p1, p2) {
+        const dot = this.#pen.make(p1, p2);
+        if (this.#pen.style.fillStyle) this.ctx.fill(dot);
+        if (this.#pen.style.strokeStyle) this.ctx.stroke(dot);
     }
 }

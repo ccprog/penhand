@@ -7,14 +7,17 @@ const config = {
         move: 500,
         space: 500
     },
-    speed: 120,
-    delta: 0.5,
-    fill: '#391b0c'
+    speed: 120
 };
 
 const pen = {
-    type: 'Broadpen'
+    type: 'Broadpen',
+    config: {
+        fill: '#391b0c'
+    }
 }
+
+const tolerance = 0.1;
 
 async function write(txt) {
     board.clear();
@@ -41,7 +44,7 @@ function onClick() {
     write(text.value).then(() => button.disabled = false);
 }
 
-new GlyphChooser('fonts/kurrent.json', board.config.delta)
+new GlyphChooser('fonts/kurrent.json', tolerance)
 .then((gc) => {
     glyphChooser = gc;
 
