@@ -1,4 +1,5 @@
 import pathParser from 'pathfit/src/pathParser.js';
+import Transformer from 'pathfit/src/transformer.js';
 
 function getTransform(angle, dx = 0, dy = 0) {
     const cosa = Math.cos(angle);
@@ -137,8 +138,14 @@ function astArgument(command, relative, args, previous) {
     return segment;
 }
 
-export default function parse(d) {
-    const ast = new pathParser().parse(d);
+export default function parse(d, trans) {
+    let ast = new pathParser().parse(d);
+
+    if (trans.length) {
+        const transformer = new Transformer(trans);
+        ast = transformer.transform(ast)
+    }
+    
     const sequence = ast.reduce(astCommand, [])
 
     return sequence.filter(segment => segment.from !== undefined);

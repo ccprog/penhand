@@ -1,13 +1,21 @@
 import { Writer } from './Writer.mjs';
 import GlyphChooser from './GlyphChooser.mjs';
 
+const canvas = document.querySelector('canvas.output');
+const text = document.querySelector('input.text');
+const button = document.querySelector('button.start');
+const size = document.querySelector('input#size');
+
+const baseScale = canvas.width / parseFloat(getComputedStyle(canvas).width);
+
 const config = {
     wait: {
         turn: 200,
         move: 500,
         space: 500
     },
-    speed: 120
+    speed: 120,
+    baseScale
 };
 
 const pen = {
@@ -17,7 +25,19 @@ const pen = {
     }
 }
 
-const tolerance = 0.1;
+const transformation = {
+    size: parseInt(size.value, 10),
+    baseScale
+};
+
+size.addEventListener('change', () => {
+    button.disabled = true;
+    transformation.size = parseInt(size.value, 10);
+
+    glyphChooser.compute(transformation).then(() => button.disabled = false);
+});
+
+const writer = new Writer(canvas, config, pen);
 
 async function write(txt) {
     writer.clear();
@@ -30,12 +50,6 @@ async function write(txt) {
     }
 }
 
-const canvas = document.querySelector('canvas.output');
-const text = document.querySelector('input.text');
-const button = document.querySelector('button.start');
-
-const writer = new Writer(canvas, config, pen);
-
 let glyphChooser;
 
 function onClick() {
@@ -44,7 +58,7 @@ function onClick() {
     write(text.value).then(() => button.disabled = false);
 }
 
-new GlyphChooser('fonts/kurrent.json', tolerance)
+new GlyphChooser('fonts/kurrent.json', transformation)
 .then((gc) => {
     glyphChooser = gc;
 

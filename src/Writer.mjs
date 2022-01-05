@@ -9,7 +9,8 @@ export class Writer {
             turn: 200,
             move: 500,
             space: 500
-        }
+        },
+        baseScale: 1
     };
     #pen;
     #drawing = false;
@@ -33,7 +34,7 @@ export class Writer {
 
     set pen(pen) {
         if (pen.type && !(this.#pen instanceof pens[pen.type])) {
-            this.#pen = new pens[pen.type](pen.config);
+            this.#pen = new pens[pen.type](pen.config, this.#config.baseScale);
         }
 
         for (const [style, value] of Object.entries(this.#pen.style)) {
@@ -62,7 +63,6 @@ export class Writer {
 
                 await this.#drawStroke();
             }
-            console.log(strokes.map(s=>s.perf))
 
             this.#drawing = false;
         }
@@ -72,7 +72,7 @@ export class Writer {
         this.#restart = performance.now();
 
         return new Promise(resolve => {
-            const end = this.#buffer.lines.slice(-1)[0].d;
+            const end = this.#buffer.lines.slice(-1)?.[0]?.d ?? 0;
             requestAnimationFrame(this.#drawFrame.bind(this, 0, end, resolve));
         }).then((result) => {
             //console.log(result);
@@ -92,7 +92,7 @@ export class Writer {
 
     #drawFrame(isAt, end, resolve, t) {
         const dur = Math.max(0, (t - this.#restart) / 1000);
-        const goesTo = dur * this.#config.speed;
+        const goesTo = dur * this.#config.speed * this.#config.baseScale;
         let f = 0, p = 0;
 
         for (const [i, line] of this.#buffer.lines.entries()) {

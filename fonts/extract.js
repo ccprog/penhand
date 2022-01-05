@@ -13,11 +13,19 @@ const cheerio = require('cheerio');
         const desc=$('svg>desc').text();
 
         const meta = {
+            metrics: {},
             subtables: {},
             substitution: {},
             requiredLigatures: [],
             pairwiseKerning: []
         };
+
+        $('lookup\\:metrics *').each((i, el) => {
+            const prop = el.name.split(':')[1];
+            const value = $(el).text();
+
+            meta.metrics[prop] = parseFloat(value);
+        })
 
         $('lookup\\:subtable').each((i, table) => {
             const subtable = $('lookup\\:entry', table).map((i, entry) => entry.attribs.use).get();

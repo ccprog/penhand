@@ -17,8 +17,6 @@ const pen = {
   }
 }
 
-const tolerance = 0.1;
-
 const userInput = (resolve) => {
   button.addEventListener('click', () => {
     button.disabled = true;
@@ -37,9 +35,9 @@ writer.ctx.font = '18px sans-serif';
   const data = await res.json();
   console.log(data.id, data.desc);
 
-  await computeFont(data.glyphs, tolerance);
+  const flatFont = await computeFont(data.glyphs, []);
 
-  for (const [name, variants] of Object.entries(data.glyphs)) {
+  for (const [name, variants] of Object.entries(flatFont)) {
     button.disabled = false;
 
     await new Promise(userInput);

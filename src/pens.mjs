@@ -1,4 +1,5 @@
 class Broadpen {
+    #baseScale;
     #config = {
         width: 6,
         height: 1,
@@ -12,7 +13,8 @@ class Broadpen {
     }
     #offset;
 
-    constructor(config) {
+    constructor(config, baseScale) {
+        this.#baseScale = baseScale;
         this.config = config;
     }
 
@@ -32,17 +34,18 @@ class Broadpen {
         Object.assign(this.#config, config);
 
         // make sure lines get not too skinny
-        this.#style.lineWidth = Math.max(this.#config.height, 1.4);
+        this.#style.lineWidth = Math.max(this.#config.height * this.#baseScale, 1.4);
         this.#style.strokeStyle = this.#style.fillStyle = this.#config.fill;
 
         const cost = Math.cos(this.#config.tilt * Math.PI / 180);
         const sint = Math.sin(this.#config.tilt * Math.PI / 180);
-        const w = (this.#config.width - this.#config.height) / 2;
+        const w = (this.#config.width - this.#config.height) * this.#baseScale / 2;
+        const m = this.#config.height * this.#baseScale * 0.6;
         this.#offset = {
             x: w * cost,
             y: w * sint,
-            mx: this.#config.height * 0.6 * sint,
-            my: this.#config.height * 0.6 * -cost
+            mx: m * sint,
+            my: m* -cost
         };
     }
 
@@ -60,6 +63,7 @@ class Broadpen {
 }
 
 class Ballpen {
+    #baseScale;
     #config = {
         size: 2
     };
@@ -69,7 +73,8 @@ class Ballpen {
         strokeStyle: 'black'
     }
 
-    constructor(config) {
+    constructor(config, baseScale) {
+        this.#baseScale = baseScale;
         this.config = config;
     }
 
@@ -88,7 +93,7 @@ class Ballpen {
 
         Object.assign(this.#config, config);
 
-        this.#style.lineWidth = this.#config.size;
+        this.#style.lineWidth = this.#config.size * this.#baseScale;
         this.#style.strokeStyle = this.#config.fill;
     }
 

@@ -3,6 +3,13 @@
   <title>Deutsche Kurrent</title>
   <desc>Handwriting script commonly used in German speaking countries in the 19th century.</desc>
   <metadata xmlns:lookup="http://examöle.org/lookup">
+    <lookup:metrics>
+      <lookup:unitsPerEm>120</lookup:unitsPerEm>
+      <lookup:baseline>72</lookup:baseline>
+      <lookup:ascend>72</lookup:ascend>
+      <lookup:descend>48</lookup:descend>
+      <lookup:xHeight>24</lookup:xHeight>
+    </lookup:metrics>
     <lookup:table id="substitution">
       <lookup:entry seq="(^|\s)\u0022" use="$1„" />
       <lookup:entry seq="\u0022($|\s)" use="“$1" />

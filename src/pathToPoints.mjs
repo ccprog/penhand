@@ -1,5 +1,7 @@
 import parse from './parse.mjs';
 
+const tolerance = 0.1;
+
 function avg(p1, p2) {
     return {
         x: (p1.x + p2.x) / 2,
@@ -117,34 +119,51 @@ function flattenCurve(tol, lines, segment) {
     return lines;
 }
 
-export function pathToPoints(d, tolerance) {
-    const sequence = parse(d);
+export function pathToPoints(d, trans, tol=tolerance) {
+
+    const sequence = parse(d, trans);
     const start = { to: sequence[0].from, d: 0 };
 
-    return sequence.reduce(flattenCurve.bind(null, tolerance), [start]);
+    return sequence.reduce(flattenCurve.bind(null, tol), [start]);
 }
 
-export function computeFont(glyphs, tolerance) {
+export function computeFont(glyphs, trans, baseScale=1) {
     const uniqueStrokes = new Map();
+    const totalScale = trans?.[0]?.sx ?? 1;
+    const usedTol = tolerance * baseScale;
 
-    for (let glyph of Object.values(glyphs)) {
-        for (let variant of Object.values(glyph)) {
+    const flatFont = {};
+
+    for (let [key, glyph] of Object.entries(glyphs)) {
+        const flatGlyph = {};
+        flatFont[key] = flatGlyph;
+
+        for (let [key, variant] of Object.entries(glyph)) {
+            const flatVariant = {
+                strokes: [],
+                advance: variant.advance * totalScale
+            };
+            flatGlyph[key] = flatVariant;
+
             for (let stroke of variant.strokes) {
+                const flatStroke = {...stroke};
+                flatVariant.strokes.push(flatStroke);
+
                 if (!stroke.d) {
-                    stroke.steps = [];
+                    flatStroke.lines = [];
                     continue;
                 }
 
                 let lines = uniqueStrokes.get(stroke.d);
                 if (!lines) {
-                    lines = pathToPoints(stroke.d, tolerance);
+                    lines = pathToPoints(stroke.d, trans, usedTol);
                     uniqueStrokes.set(stroke.d, lines);
                 }
 
-                stroke.lines = lines;
+                flatStroke.lines = lines;
             }
         }
     }
 
-    return Promise.resolve();
+    return Promise.resolve(flatFont);
 }

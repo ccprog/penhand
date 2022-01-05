@@ -1,11 +1,15 @@
 import { computeFont } from './pathToPoints.mjs';
 
 export default class GlyphChooser {
-    constructor (url, tolerance) {
+    #size;
+    #flatFont
+
+    constructor (url, transformation) {
         return (async () => {
             const res = await fetch(url);
             const font = await res.json();
 
+            this.metrics = font.meta.metrics;
             this.glyphs = font.glyphs;
             this.ligatures = font.meta.requiredLigatures;
             this.subtables = Object.entries(font.meta.subtables);
@@ -14,14 +18,30 @@ export default class GlyphChooser {
                 return [new RegExp(test, 'g'), subst];
             });
 
-            await this.compute(tolerance);
+            await this.compute(transformation);
 
             return this;
         })();
     }
 
-    async compute(tolerance) {
-        await computeFont(this.glyphs, tolerance);
+    async compute(transformation) {
+        const trans = [];
+
+        if (transformation.size) {
+            const sx = transformation.size / this.metrics.unitsPerEm * transformation.baseScale;
+            if (sx !== 1) trans.push({ command: 'scale', sx });
+        }
+
+        if (transformation.slant) {
+            const tan = Math.tan(-transformation.slant * Math.PI / 180);
+            const y = metrics.baseline;
+            if (tan !== 0) trans.push({ command: 'matrix', a: 1, b: 0, c: tan, d: 1, e: -tan * y, f: 0 });
+        }
+
+        if (this.#size === transformation.size) return;
+        this.#size = transformation.size;
+
+        this.#flatFont = await computeFont(this.glyphs, trans, transformation.baseScale);
     }
 
     substitute(txt) {
@@ -65,7 +85,7 @@ export default class GlyphChooser {
         let position = 0;
 
         for (const {glyph, variant, kerning} of selection) {
-            const { strokes, advance } = this.glyphs[glyph][variant];
+            const { strokes, advance } = this.#flatFont[glyph][variant];
 
             position += kerning;
 
@@ -100,20 +120,20 @@ export default class GlyphChooser {
             const select = { glyph, variant: 'isolate', kerning: 0 };
 
             const last = selection[i - 1];
-            const next = seq[i + 1] && this.glyphs[seq[i + 1]];
+            const next = seq[i + 1] && this.#flatFont[seq[i + 1]];
 
             const canBackward = ['initial', 'medial'].includes(last?.variant);
             const canForward = next?.final || next?.medial;
 
             if (this.glyphs[glyph]) {
                 if (canBackward) {
-                    if (canForward && this.glyphs[glyph].medial) {
+                    if (canForward && this.#flatFont[glyph].medial) {
                         select.variant = 'medial'
                     } else {
                         select.variant = 'final';
                     }
                 } else {
-                    if (canForward && this.glyphs[glyph].initial) {
+                    if (canForward && this.#flatFont[glyph].initial) {
                         select.variant = 'initial';
                     }
 
