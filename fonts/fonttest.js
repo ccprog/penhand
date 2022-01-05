@@ -13,10 +13,18 @@
             fillStyle: 'black',
             strokeStyle: 'black'
         }
-        #point;
+        #offset;
 
         constructor(config) {
             this.config = config;
+        }
+
+        get config() {
+            return {...this.#config};
+        }
+
+        get style() {
+            return {...this.#style};
         }
 
         set config(config = {}) {
@@ -33,7 +41,7 @@
             const cost = Math.cos(this.#config.tilt * Math.PI / 180);
             const sint = Math.sin(this.#config.tilt * Math.PI / 180);
             const w = (this.#config.width - this.#config.height) / 2;
-            this.#point = {
+            this.#offset = {
                 x: w * cost,
                 y: w * sint,
                 mx: this.#config.height * 0.6 * sint,
@@ -41,16 +49,8 @@
             };
         }
 
-        get config() {
-            return {...this.#config};
-        }
-
-        get style() {
-            return {...this.#style};
-        }
-
         make(p1, p2=p1) {
-            const o = this.#point;
+            const o = this.#offset;
             let d = [
                     'M', p1.x + o.x, p1.y + o.y,
                     p1.x - o.x, p1.y - o.y,
@@ -76,6 +76,14 @@
             this.config = config;
         }
 
+        get config() {
+            return {...this.#config};
+        }
+
+        get style() {
+            return {...this.#style};
+        }
+
         set config(config = {}) {
             if (config.height > config.width) {
                 throw new Error('pen height must be smaller than width');
@@ -87,22 +95,14 @@
             this.#style.strokeStyle = this.#config.fill;
         }
 
-        get config() {
-            return {...this.#config};
-        }
-
-        get style() {
-            return {...this.#style};
-        }
-
         make(p1, p2=p1) {
             return new Path2D(`M ${p1.x},${p1.y} ${p2.x},${p2.y}`);
         }
     }
 
-    const pens = { Ballpen, Broadpen };
+    var pens = { Ballpen, Broadpen };
 
-    class QuillWriter {
+    class Writer {
         #config = {
             speed: 100,
             wait: {
@@ -830,8 +830,8 @@
     const canvas = document.querySelector('canvas.signature');
     const button = document.querySelector('button.start');
 
-    const board = new QuillWriter(canvas, config, pen);
-    board.ctx.font = '18px sans-serif';
+    const writer = new Writer(canvas, config, pen);
+    writer.ctx.font = '18px sans-serif';
 
     (async function () {
       const res = await fetch('kurrent.json');
@@ -845,7 +845,7 @@
 
         await new Promise(userInput);
 
-        board.clear();
+        writer.clear();
         let x = 50, line = 200;
 
         for (const [position, { strokes, advance, desc }] of Object.entries(variants)) {
@@ -862,11 +862,11 @@
             pauses.push(directive);
           }
 
-          board.ctx.setTransform(1, 0, 0, 1, 0, 0);
+          writer.ctx.setTransform(1, 0, 0, 1, 0, 0);
           const details = (desc || name) + ` | ${position} | ${strokes.length}: ${pauses.join(' ')}`;
-          board.ctx.fillText(details, 30, line);
+          writer.ctx.fillText(details, 30, line);
 
-          await board.write(strokes, {x, y: 30});
+          await writer.write(strokes, {x, y: 30});
 
           await new Promise(resolve => setTimeout(resolve, 500));
 

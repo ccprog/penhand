@@ -1,4 +1,4 @@
-import { QuillWriter } from './QuillWriter.mjs';
+import { Writer } from './Writer.mjs';
 import GlyphChooser from './GlyphChooser.mjs';
 
 const config = {
@@ -20,13 +20,13 @@ const pen = {
 const tolerance = 0.1;
 
 async function write(txt) {
-    board.clear();
+    writer.clear();
 
     const seq = glyphChooser.substitute(txt);
     const instruction = glyphChooser.connect(seq);
 
     for (const { position, strokes } of instruction) {
-        await board.write(strokes, { x: position + 50, y: 30 });
+        await writer.write(strokes, { x: position + 50, y: 30 });
     }
 }
 
@@ -34,7 +34,7 @@ const canvas = document.querySelector('canvas.output');
 const text = document.querySelector('input.text');
 const button = document.querySelector('button.start');
 
-const board = new QuillWriter(canvas, config, pen);
+const writer = new Writer(canvas, config, pen);
 
 let glyphChooser;
 

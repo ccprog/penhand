@@ -1,4 +1,4 @@
-import { QuillWriter } from './QuillWriter.mjs';
+import { Writer } from './Writer.mjs';
 import { computeFont } from './pathToPoints.mjs';
 
 const config = {
@@ -29,8 +29,8 @@ const userInput = (resolve) => {
 const canvas = document.querySelector('canvas.signature');
 const button = document.querySelector('button.start');
 
-const board = new QuillWriter(canvas, config, pen);
-board.ctx.font = '18px sans-serif';
+const writer = new Writer(canvas, config, pen);
+writer.ctx.font = '18px sans-serif';
 
 (async function () {
   const res = await fetch('kurrent.json');
@@ -44,7 +44,7 @@ board.ctx.font = '18px sans-serif';
 
     await new Promise(userInput);
 
-    board.clear();
+    writer.clear();
     let x = 50, line = 200;
 
     for (const [position, { strokes, advance, desc }] of Object.entries(variants)) {
@@ -61,11 +61,11 @@ board.ctx.font = '18px sans-serif';
         pauses.push(directive);
       }
 
-      board.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      writer.ctx.setTransform(1, 0, 0, 1, 0, 0);
       const details = (desc || name) + ` | ${position} | ${strokes.length}: ${pauses.join(' ')}`;
-      board.ctx.fillText(details, 30, line);
+      writer.ctx.fillText(details, 30, line);
 
-      await board.write(strokes, {x, y: 30});
+      await writer.write(strokes, {x, y: 30});
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
