@@ -1116,6 +1116,7 @@
 
     class GlyphChooser {
         #size;
+        #slant;
         #flatFont
 
         constructor (url, transformation) {
@@ -1148,12 +1149,13 @@
 
             if (transformation.slant) {
                 const tan = Math.tan(-transformation.slant * Math.PI / 180);
-                const y = metrics.baseline;
+                const y = this.metrics.skewHeight;
                 if (tan !== 0) trans.push({ command: 'matrix', a: 1, b: 0, c: tan, d: 1, e: -tan * y, f: 0 });
             }
 
-            if (this.#size === transformation.size) return;
+            if (this.#size === transformation.size && this.#slant === transformation.slant) return;
             this.#size = transformation.size;
+            this.#slant = transformation.slant;
 
             this.#flatFont = await computeFont(this.glyphs, trans, transformation.baseScale);
         }
@@ -1269,6 +1271,7 @@
     const text = document.querySelector('input.text');
     const button = document.querySelector('button.start');
     const size = document.querySelector('input#size');
+    const slant = document.querySelector('input#slant');
 
     const baseScale = canvas.width / parseFloat(getComputedStyle(canvas).width);
 
@@ -1291,15 +1294,20 @@
 
     const transformation = {
         size: parseInt(size.value, 10),
+        slant: parseInt(slant.value, 10),
         baseScale
     };
 
-    size.addEventListener('change', () => {
+    function getFontProperties() {
         button.disabled = true;
         transformation.size = parseInt(size.value, 10);
+        transformation.slant = parseInt(slant.value, 10);
 
         glyphChooser.compute(transformation).then(() => button.disabled = false);
-    });
+    }
+
+    size.addEventListener('change', getFontProperties);
+    slant.addEventListener('change', getFontProperties);
 
     const writer = new Writer(canvas, config, pen);
 

@@ -2,6 +2,7 @@ import { computeFont } from './pathToPoints.mjs';
 
 export default class GlyphChooser {
     #size;
+    #slant;
     #flatFont
 
     constructor (url, transformation) {
@@ -34,12 +35,13 @@ export default class GlyphChooser {
 
         if (transformation.slant) {
             const tan = Math.tan(-transformation.slant * Math.PI / 180);
-            const y = metrics.baseline;
+            const y = this.metrics.skewHeight;
             if (tan !== 0) trans.push({ command: 'matrix', a: 1, b: 0, c: tan, d: 1, e: -tan * y, f: 0 });
         }
 
-        if (this.#size === transformation.size) return;
+        if (this.#size === transformation.size && this.#slant === transformation.slant) return;
         this.#size = transformation.size;
+        this.#slant = transformation.slant;
 
         this.#flatFont = await computeFont(this.glyphs, trans, transformation.baseScale);
     }

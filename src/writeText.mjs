@@ -5,6 +5,7 @@ const canvas = document.querySelector('canvas.output');
 const text = document.querySelector('input.text');
 const button = document.querySelector('button.start');
 const size = document.querySelector('input#size');
+const slant = document.querySelector('input#slant');
 
 const baseScale = canvas.width / parseFloat(getComputedStyle(canvas).width);
 
@@ -27,15 +28,20 @@ const pen = {
 
 const transformation = {
     size: parseInt(size.value, 10),
+    slant: parseInt(slant.value, 10),
     baseScale
 };
 
-size.addEventListener('change', () => {
+function getFontProperties() {
     button.disabled = true;
     transformation.size = parseInt(size.value, 10);
+    transformation.slant = parseInt(slant.value, 10);
 
     glyphChooser.compute(transformation).then(() => button.disabled = false);
-});
+}
+
+size.addEventListener('change', getFontProperties);
+slant.addEventListener('change', getFontProperties);
 
 const writer = new Writer(canvas, config, pen);
 
