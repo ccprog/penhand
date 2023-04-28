@@ -13,6 +13,11 @@ function distance(p1, p2) {
     return Math.hypot(p2.y - p1.y, p2.x - p1.x);
 }
 
+function direction(p1, p2) {
+    // 0...4 for full circle
+    return Math.atan2(p2.y - p1.y, p2.x - p1.x) / Math.PI * 2;
+}
+
 function isFlatEnough(segment, tol) {
     const { from, to, control_1, control_2 } = segment;
 
@@ -58,10 +63,18 @@ function subdivide(segment) {
 
 function push(lines, point) {
     const lastLine = lines[lines.length - 1];
+    const dd = distance(lastLine.to, point);
+    const f = direction(lastLine.to, point);
+
+    if (lastLine.f) {
+        const df = (f + 4) % 4 - (lastLine.f + 4) % 4;
+        lastLine.r = dd / Math.cos(Math.PI/4 * (2 - df));
+    }
 
     lines.push({
         to: point,
-        d: lastLine.d + distance(lastLine.to, point)
+        d: lastLine.d + dd,
+        f
     });
 }
 

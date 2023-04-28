@@ -55,13 +55,13 @@
         make(p1, p2=p1) {
             const o = this.#offset;
             let d = [
-                    'M', p1.x + o.x, p1.y + o.y,
-                    p1.x - o.x, p1.y - o.y,
-                    p2.x - o.x, p2.y - o.y,
-                    p2.x + o.x, p2.y + o.y, 'Z'
+                    'M', p1.to.x + o.x, p1.to.y + o.y,
+                    p1.to.x - o.x, p1.to.y - o.y,
+                    p2.to.x - o.x, p2.to.y - o.y,
+                    p2.to.x + o.x, p2.to.y + o.y, 'Z'
                 ];
         
-            return new Path2D(d.join(' '));
+            return [new Path2D(d.join(' '))];
         }
     }
 
@@ -101,11 +101,115 @@
         }
 
         make(p1, p2=p1) {
-            return new Path2D(`M ${p1.x},${p1.y} ${p2.x},${p2.y}`);
+            return [new Path2D(`M ${p1.to.x},${p1.to.y} ${p2.to.x},${p2.to.y}`)];
         }
     }
 
-    var pens = { Ballpen, Broadpen };
+    class PointedNib {
+        #baseScale;
+        #config = {
+            maxwidth: 8,
+            maxgain: 0.1,
+            minradius: 6,
+            damp1: 0.8,
+            damp2: 0.3,
+            baseDirection: 0, //=slant, Verbreiterung geht parallel dazu
+            tilt: 0
+        };
+        #style = {
+            lineWidth: 2,
+            lineJoin: 'round',
+            fillStyle: 'black',
+            strokeStyle: 'black'
+        }
+        #offset;
+
+        constructor(config, baseScale) {
+            this.#baseScale = baseScale;
+            this.config = config;
+        }
+
+        get config() {
+            return {...this.#config};
+        }
+
+        get style() {
+            return {...this.#style};
+        }
+
+        set config(config = {}) {
+            Object.assign(this.#config, config);
+            this.#config.baseDirection = (this.#config?.slant ?? 0) / 90;
+
+            // make sure lines get not too skinny
+            this.#style.lineWidth = Math.max(this.#baseScale, 1.4);
+            this.#style.strokeStyle = this.#style.fillStyle = this.#config.fill;
+
+            const cost = Math.cos(this.#config.tilt * Math.PI / 180) / 2;
+            const sint = Math.sin(this.#config.tilt * Math.PI / 180) / 2;
+            const h = this.#style.lineWidth;
+            this.#offset = { cost, sint, h };
+        }
+
+        #directiveWidth (p) {
+            // normalize direction to 0...4s
+            const dir = (p.f - this.#config.baseDirection + 8) % 4;
+            // directive width goes 0...1...0 for 0...1...2...
+            return 1 - Math.abs(Math.min(dir - 1, 1));
+        }
+
+        #dampenedWidth(pTo, dFrom, wFrom) {
+            const wTo = this.#directiveWidth(pTo);
+
+            const dif = wTo - wFrom;
+            const damp = this.#config[dif > 0 ? 'damp1' : 'damp2'];
+            return wFrom + dif * (1 - damp ** (pTo.d - dFrom));
+        }
+
+        make(p1, p2, state) {
+            let w1 = this.#directiveWidth(p2);
+            let w2 = w1;
+
+            if (state) {
+                if (!p1.d) {
+                    state.d = 0;
+                    w1 = state.w;
+                } else {
+                    w1 = this.#dampenedWidth(p1, state.d, state.w);
+                }
+                w2 = this.#dampenedWidth(p2, state.d, state.w);
+                if (state.next) {
+                    state.d = p2.d;
+                    state.w = w2;
+                }
+            } else {
+                state = {
+                    d: 0,
+                    w: w2
+                };
+            }
+            state.next = false;
+
+            const wStart = (this.#config.maxwidth - this.#offset.h) * w1;
+            const wEnd = (this.#config.maxwidth - this.#offset.h) * w2;
+
+            const w1x = wStart * this.#baseScale * this.#offset.cost;
+            const w1y = wStart * this.#baseScale * this.#offset.sint;
+            const w2x = wEnd * this.#baseScale * this.#offset.cost;
+            const w2y = wEnd * this.#baseScale * this.#offset.sint;
+
+            const path = [
+                    'M', p1.to.x + w1x, p1.to.y + w1y,
+                    p1.to.x - w1x, p1.to.y - w1y,
+                    p2.to.x - w2x, p2.to.y - w2y,
+                    p2.to.x + w2x, p2.to.y + w2y, 'Z'
+                ];
+
+            return [new Path2D(path.join(' ')), state, [w1, w2]];
+        }
+    }
+
+    var pens = { Ballpen, Broadpen, PointedNib };
 
     class Writer {
         #config = {
@@ -118,7 +222,9 @@
             baseScale: 1
         };
         #pen;
+        #penState = null;
         #drawing = false;
+        #reset = false;
         #restart;
         strokes;
         #buffer;
@@ -140,6 +246,8 @@
         set pen(pen) {
             if (pen.type && !(this.#pen instanceof pens[pen.type])) {
                 this.#pen = new pens[pen.type](pen.config, this.#config.baseScale);
+            } else {
+                this.#pen.config = pen.config;
             }
 
             for (const [style, value] of Object.entries(this.#pen.style)) {
@@ -150,6 +258,9 @@
         clear () {
             this.ctx.setTransform(1, 0, 0, 1, 0, 0);
             this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+
+            this.#reset = true;
+            this.#penState = null;
         }
 
         async write(strokes, at={}) {
@@ -164,9 +275,11 @@
 
                 for (let stroke of strokes) {
                     this.#buffer = stroke;
-                    stroke.perf = [];
+                    stroke.perf = [stroke.pause, this.#reset, stroke.d];
 
                     await this.#drawStroke();
+
+                    this.#reset = (!!stroke.pause && stroke.pause != 'turn');
                 }
 
                 this.#drawing = false;
@@ -180,7 +293,7 @@
                 const end = this.#buffer.lines.slice(-1)?.[0]?.d ?? 0;
                 requestAnimationFrame(this.#drawFrame.bind(this, 0, end, resolve));
             }).then((result) => {
-                //console.log(result);
+                //console.log(this.#buffer.perf);
 
                 const wait = this.#config.wait[this.#buffer.pause] || 0;
                 return new Promise(resolve => setTimeout(resolve, wait));
@@ -190,47 +303,62 @@
         #divide(line1, line2, pos) {
             const t = (pos - line1.d) / (line2.d - line1.d);
             return {
-                x: line1.to.x * (1-t) + line2.to.x * t,
-                y: line1.to.y * (1-t) + line2.to.y * t,
-            }
+                to: {
+                    x: line1.to.x * (1-t) + line2.to.x * t,
+                    y: line1.to.y * (1-t) + line2.to.y * t
+                },
+                r: line2.r,
+                d: pos,
+                f: line2.f
+            };
         }
 
         #drawFrame(isAt, end, resolve, t) {
             const dur = Math.max(0, (t - this.#restart) / 1000);
             const goesTo = dur * this.#config.speed * this.#config.baseScale;
-            let f = 0, p = 0;
+            //let f = 0, p = 0, w1, w2;
+
+            const perfd = [];
 
             for (const [i, line] of this.#buffer.lines.entries()) {
                 if (!i || (line.d < isAt)) continue;
 
                 const lastLine = this.#buffer.lines[i-1];
 
-                if (goesTo > line.d) {
-                    this.drawAt(lastLine.to, line.to);
-                    f++;
-                } else {
-                    // this includes the case goesTo == lastLine.d
-                    const to = this.#divide(lastLine, line, goesTo);
-                    this.drawAt(lastLine.to, to);
-                    p++;
-                    break;
-                }
-            }
-            this.#buffer.perf.push([goesTo - isAt, f, p]);
+                let from = lastLine,
+                    to = line;
 
-            isAt = goesTo;
+                if (isAt > lastLine.d) {
+                    from = this.#divide(lastLine, line, isAt);
+                }
+
+                if (goesTo < line.d) {
+                    to = this.#divide(lastLine, line, goesTo);
+                } else if (this.#penState) {
+                    this.#penState.next = true;
+                }
+
+                if (this.#reset && !isAt) this.#penState = null;
+
+                const [dot, state, perf] = this.#pen.make(from, to, this.#penState);
+                if (this.#pen.style.fillStyle) this.ctx.fill(dot);
+                if (this.#pen.style.strokeStyle) this.ctx.stroke(dot);
+
+                perfd.push(this.#penState, perf);
+
+                this.#penState = state;
+                isAt = to.d;
+
+                if (goesTo <= line.d) break;
+            }
+
+            this.#buffer.perf.push(perfd);
 
             if (isAt >= end) {
                 return resolve(`stroke of length=${end} drawn`);
             }
 
             requestAnimationFrame(this.#drawFrame.bind(this, isAt, end, resolve));
-        }
-
-        drawAt(p1, p2) {
-            const dot = this.#pen.make(p1, p2);
-            if (this.#pen.style.fillStyle) this.ctx.fill(dot);
-            if (this.#pen.style.strokeStyle) this.ctx.stroke(dot);
         }
     }
 
@@ -959,6 +1087,11 @@
         return Math.hypot(p2.y - p1.y, p2.x - p1.x);
     }
 
+    function direction(p1, p2) {
+        // 0...4 for full circle
+        return Math.atan2(p2.y - p1.y, p2.x - p1.x) / Math.PI * 2;
+    }
+
     function isFlatEnough(segment, tol) {
         const { from, to, control_1, control_2 } = segment;
 
@@ -1004,10 +1137,18 @@
 
     function push(lines, point) {
         const lastLine = lines[lines.length - 1];
+        const dd = distance(lastLine.to, point);
+        const f = direction(lastLine.to, point);
+
+        if (lastLine.f) {
+            const df = (f + 4) % 4 - (lastLine.f + 4) % 4;
+            lastLine.r = dd / Math.cos(Math.PI/4 * (2 - df));
+        }
 
         lines.push({
             to: point,
-            d: lastLine.d + distance(lastLine.to, point)
+            d: lastLine.d + dd,
+            f
         });
     }
 

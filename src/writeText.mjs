@@ -4,8 +4,10 @@ import GlyphChooser from './GlyphChooser.mjs';
 const canvas = document.querySelector('canvas.output');
 const text = document.querySelector('input.text');
 const button = document.querySelector('button.start');
+const pentype = document.querySelector('select#pen');
 const size = document.querySelector('input#size');
 const slant = document.querySelector('input#slant');
+const tilt = document.querySelector('input#tilt');
 
 const baseScale = canvas.width / parseFloat(getComputedStyle(canvas).width);
 
@@ -20,7 +22,7 @@ const config = {
 };
 
 const pen = {
-    type: 'Broadpen',
+    type: 'Ballpen',
     config: {
         fill: '#391b0c'
     }
@@ -42,8 +44,20 @@ function getFontProperties() {
 
 size.addEventListener('change', getFontProperties);
 slant.addEventListener('change', getFontProperties);
+tilt.addEventListener('change', getFontProperties);
 
 const writer = new Writer(canvas, config, pen);
+function getPenProperties() {
+    pen.type = pentype.value;
+    pen.config.tilt = parseInt(tilt.value, 10);
+    pen.config.slant = parseInt(slant.value, 10);
+    writer.pen = pen;
+}
+getPenProperties();
+
+pentype.addEventListener('change', getPenProperties);
+tilt.addEventListener('change', getPenProperties);
+slant.addEventListener('change', getPenProperties);
 
 async function write(txt) {
     writer.clear();
