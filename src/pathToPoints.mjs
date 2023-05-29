@@ -153,6 +153,7 @@ export function computeFont(glyphs, trans, baseScale=1) {
 
         for (let [key, variant] of Object.entries(glyph)) {
             const flatVariant = {
+                ...variant,
                 strokes: [],
                 advance: variant.advance * totalScale
             };

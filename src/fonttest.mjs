@@ -17,6 +17,8 @@ const pen = {
   }
 }
 
+const font = 'kurrent.json';
+
 const userInput = (resolve) => {
   button.addEventListener('click', () => {
     button.disabled = true;
@@ -31,7 +33,7 @@ const writer = new Writer(canvas, config, pen);
 writer.ctx.font = '18px sans-serif';
 
 (async function () {
-  const res = await fetch('kurrent.json');
+  const res = await fetch(font);
   const data = await res.json();
   console.log(data.id, data.desc);
 
@@ -43,9 +45,10 @@ writer.ctx.font = '18px sans-serif';
     await new Promise(userInput);
 
     writer.clear();
-    let x = 50, line = 200;
+    let x = 50, line;
 
-    for (const [position, { strokes, advance, desc }] of Object.entries(variants)) {
+    for (const [position, { strokes, attachments, desc }] of Object.entries(variants)) {
+      line = 200;
       const pauses = [];
 
       for(const {late, pause} of strokes) {
@@ -60,15 +63,21 @@ writer.ctx.font = '18px sans-serif';
       }
 
       writer.ctx.setTransform(1, 0, 0, 1, 0, 0);
-      const details = (desc || name) + ` | ${position} | ${strokes.length}: ${pauses.join(' ')}`;
-      writer.ctx.fillText(details, 30, line);
+      const details = (desc || name) + ` | ${position} | ${strokes.length}`;
+      writer.ctx.fillText(details, x - 20, line);
 
-      await writer.write(strokes, {x, y: 30});
+      for (const {startat, endat, keys} of attachments) {
+        const p = keys.map(i => pauses[i]);
+        const sequence = `${startat} | ${endat}: ${p.join(' ')}`;
+        writer.ctx.fillText(sequence, x - 20, line += 22);
+      }
+
+      await writer.write(attachments[0].keys.map(i => strokes[i]), {x, y: 30});
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
       line += 22;
-      x += 150;
+      x += 250;
     }  
   }
 })();
