@@ -17,7 +17,7 @@ const pen = {
   }
 }
 
-const font = 'kurrent.json';
+const font = 'spencerian.json';
 
 const userInput = (resolve) => {
   button.addEventListener('click', () => {
