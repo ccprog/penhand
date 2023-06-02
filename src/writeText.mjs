@@ -51,6 +51,7 @@ function getPenProperties() {
     pen.type = pentype.value;
     pen.config.tilt = parseInt(tilt.value, 10);
     pen.config.slant = parseInt(slant.value, 10);
+    if(pen.type == 'PointedNib') pen.config.maxwidth = 4;
     writer.pen = pen;
 }
 getPenProperties();
@@ -78,7 +79,7 @@ function onClick() {
     write(text.value).then(() => button.disabled = false);
 }
 
-new GlyphChooser('fonts/kurrent.json', transformation)
+new GlyphChooser('fonts/spencerian.json', transformation)
 .then((gc) => {
     glyphChooser = gc;
 

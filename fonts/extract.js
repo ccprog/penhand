@@ -8,7 +8,7 @@ const single = 'single';
 const at = {
     startat: [single],
     endat: [single],
-    keys: []
+    keys: [0]
 };
 
 const unknown = {
@@ -157,7 +157,7 @@ function getGlyphs($) {
             variant.strokes = [{
                 pause: 'space'
             }];
-            variant.attachments= [at] ;
+            variant.attachments= [at];
         } else {
             Object.assign(variant, getStrokes($, symbol));
         }

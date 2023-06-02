@@ -1227,6 +1227,7 @@
 
             for (let [key, variant] of Object.entries(glyph)) {
                 const flatVariant = {
+                    ...variant,
                     strokes: [],
                     advance: variant.advance * totalScale
                 };
@@ -1256,20 +1257,23 @@
     }
 
     class GlyphChooser {
+        #single;
         #size;
         #slant;
-        #flatFont
+        #flatFont;
 
         constructor (url, transformation) {
             return (async () => {
                 const res = await fetch(url);
                 const font = await res.json();
 
+                this.#single = font.meta.keywords.single;
                 this.metrics = font.meta.metrics;
                 this.glyphs = font.glyphs;
                 this.ligatures = font.meta.requiredLigatures;
                 this.subtables = Object.entries(font.meta.subtables);
                 this.kerning = font.meta.pairwiseKerning;
+                this.attachment = font.meta.pairwiseAttachment;
                 this.substitution = Object.entries(font.meta.substitution).map(([test, subst]) => {
                     return [new RegExp(test, 'g'), subst];
                 });
@@ -1321,7 +1325,7 @@
             return seq;
         }
 
-        #findKerning(first, second) {
+        #findPairValue(table, first, second, missing) {
             const firstsub = this.subtables
                 .filter(([, st]) => st.includes(first))
                 .map(([id])=>id);
@@ -1329,11 +1333,11 @@
                 .filter(([, st]) => st.includes(second))
                 .map(([id])=>id);
 
-            const pair = this.kerning.find(e => {
+            const pair = this[table].find(e => {
                 return firstsub.includes(e.first) && secondsub.includes(e.second);
             });
 
-            return pair?.use ?? 0;
+            return pair?.use ?? missing;
         }
 
         #order(selection) {
@@ -1341,12 +1345,16 @@
             const late = [];
             let position = 0;
 
-            for (const {glyph, variant, kerning} of selection) {
-                const { strokes, advance } = this.#flatFont[glyph][variant];
+            for (const {glyph, variant, startat, endat, kerning} of selection) {
+                const { strokes, advance, attachments } = this.#flatFont[glyph][variant];
+
+                const usedStrokes = attachments
+                    .find(({startat: s, endat: e}) => s == startat && e == endat)
+                    .keys.map(i => strokes[i]);
 
                 position += kerning;
 
-                const wait = strokes.filter(s => s.late);
+                const wait = usedStrokes.filter(s => s.late);
                 if (wait.length) {
                     late.push({
                         strokes: wait,
@@ -1355,7 +1363,7 @@
                 }
 
                 const regular = {
-                    strokes: strokes.filter(s => !s.late),
+                    strokes: usedStrokes.filter(s => !s.late),
                     position
                 };
                 instruction.push(regular);
@@ -1374,7 +1382,13 @@
             const selection = [];
 
             seq.forEach((glyph, i) => {
-                const select = { glyph, variant: 'isolate', kerning: 0 };
+                const select = { 
+                    glyph,
+                    variant: 'isolate',
+                    startat: this.#single,
+                    endat: this.#single,
+                    kerning: 0
+                };
 
                 const last = selection[i - 1];
                 const next = seq[i + 1] && this.#flatFont[seq[i + 1]];
@@ -1384,18 +1398,22 @@
 
                 if (this.glyphs[glyph]) {
                     if (canBackward) {
+                        select.startat = last?.endat ?? this.#single;
+
                         if (canForward && this.#flatFont[glyph].medial) {
                             select.variant = 'medial';
+                            select.endat = this.#findPairValue('attachment', glyph, seq[i + 1], this.#single);
                         } else {
                             select.variant = 'final';
                         }
                     } else {
                         if (canForward && this.#flatFont[glyph].initial) {
                             select.variant = 'initial';
+                            select.endat = this.#findPairValue('attachment', glyph, seq[i + 1], this.#single);
                         }
 
                         if (i > 0) {
-                            select.kerning = this.#findKerning(last.glyph, glyph);
+                            select.kerning = this.#findPairValue('kerning', last.glyph, glyph, 0);
                         }
                     }
                 } else {
@@ -1458,6 +1476,7 @@
         pen.type = pentype.value;
         pen.config.tilt = parseInt(tilt.value, 10);
         pen.config.slant = parseInt(slant.value, 10);
+        if(pen.type == 'PointedNib') pen.config.maxwidth = 4;
         writer.pen = pen;
     }
     getPenProperties();
@@ -1485,7 +1504,7 @@
         write(text.value).then(() => button.disabled = false);
     }
 
-    new GlyphChooser('fonts/kurrent.json', transformation)
+    new GlyphChooser('fonts/spencerian.json', transformation)
     .then((gc) => {
         glyphChooser = gc;
 
