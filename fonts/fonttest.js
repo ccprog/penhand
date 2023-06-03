@@ -1337,7 +1337,13 @@
             writer.ctx.fillText(sequence, x - 20, line += 22);
           }
 
-          await writer.write(attachments[0].keys.map(i => strokes[i]), {x, y: 30});
+          await writer.write([{
+            strokes: attachments[0].keys.map(i => strokes[i]),
+            position: 0
+          }], {
+            x, 
+            y: 30
+          });
 
           await new Promise(resolve => setTimeout(resolve, 500));
 

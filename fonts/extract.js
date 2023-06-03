@@ -95,7 +95,7 @@ function splitForAttachments(strokes, starts, ends) {
     return attachments;
 }
 
-function getStrokes($, symbol) {
+function getStrokes($, symbol, isEnding) {
     const strokes = [];
     const starts = new Set();
     const ends = new Set();
@@ -128,7 +128,7 @@ function getStrokes($, symbol) {
         delete s.endat;
     }
 
-    if (ends.has(single)) {
+    if (isEnding) {
         for (const filtered of attachments.map(at => at.keys.map(i => strokes[i]))) {
             const lastRegular = filtered.filter(stroke => !stroke.late).pop();
             lastRegular.pause = 'move';
@@ -159,7 +159,8 @@ function getGlyphs($) {
             }];
             variant.attachments= [at];
         } else {
-            Object.assign(variant, getStrokes($, symbol));
+            const isEnding = ['final', 'isolate'].includes(position);
+            Object.assign(variant, getStrokes($, symbol, isEnding));
         }
 
         if (!glyphs[name]) glyphs[name] = {};
