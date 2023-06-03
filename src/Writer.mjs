@@ -54,7 +54,18 @@ export class Writer {
         this.#penState = null;
     }
 
-    async write(strokes, at={}) {
+    async write(instruction, offset={}) {
+        for (const { position, strokes } of instruction) {
+            const at = {
+                x: position + (offset.x ?? 0),
+                y: (offset.y ?? 0)
+            }
+
+            await this.#drawMove(strokes, at);
+        }
+    }
+
+    async #drawMove(strokes, at) {
         if (this.#drawing) {
             throw new Error('already running');
         } else {
@@ -77,18 +88,18 @@ export class Writer {
         }
     }
 
-    #drawStroke() {
+    async #drawStroke() {
         this.#restart = performance.now();
 
-        return new Promise(resolve => {
+        await new Promise(resolve => {
             const end = this.#buffer.lines.slice(-1)?.[0]?.d ?? 0;
             requestAnimationFrame(this.#drawFrame.bind(this, 0, end, resolve));
-        }).then((result) => {
-            //console.log(this.#buffer.perf);
-
-            const wait = this.#config.wait[this.#buffer.pause] || 0;
-            return new Promise(resolve => setTimeout(resolve, wait));
         });
+
+        //console.log(this.#buffer.perf);
+
+        const wait = this.#config.wait[this.#buffer.pause] || 0;
+        return await new Promise(resolve => setTimeout(resolve, wait));
     }
 
     #divide(line1, line2, pos) {
@@ -107,7 +118,6 @@ export class Writer {
     #drawFrame(isAt, end, resolve, t) {
         const dur = Math.max(0, (t - this.#restart) / 1000);
         const goesTo = dur * this.#config.speed * this.#config.baseScale;
-        //let f = 0, p = 0, w1, w2;
 
         const perfd = [];
 

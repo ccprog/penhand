@@ -1,5 +1,5 @@
 import { Writer } from './Writer.mjs';
-import GlyphChooser from './GlyphChooser.mjs';
+import FontLoader from './FontLoader.mjs';
 
 const canvas = document.querySelector('canvas.output');
 const text = document.querySelector('input.text');
@@ -40,12 +40,14 @@ const transformation = {
     baseScale
 };
 
-function getFontProperties() {
+async function getFontProperties() {
     button.disabled = true;
     transformation.size = parseInt(size.value, 10);
     transformation.slant = parseInt(slant.value, 10);
 
-    glyphChooser.compute(transformation).then(() => button.disabled = false);
+    await fontLoader.compute(transformation)
+    
+    button.disabled = false;
 }
 
 size.addEventListener('change', getFontProperties);
@@ -69,15 +71,13 @@ slant.addEventListener('change', getPenProperties);
 async function write(txt) {
     writer.clear();
 
-    const seq = glyphChooser.substitute(txt);
-    const instruction = glyphChooser.connect(seq);
+    const seq = fontLoader.substitute(txt);
+    const instruction = fontLoader.connect(seq);
 
-    for (const { position, strokes } of instruction) {
-        await writer.write(strokes, { x: position + 50, y: 30 });
-    }
+    await writer.write(instruction, { x: 50, y: 30 });
 }
 
-let glyphChooser;
+let fontLoader;
 
 function onClick() {
     button.disabled = true;
@@ -85,21 +85,18 @@ function onClick() {
     write(text.value).then(() => button.disabled = false);
 }
 
-function getFont() {
+async function getFont() {
     button.disabled = true;
 
     const name = font.value;
 
-    new GlyphChooser(`fonts/${name}.json`, transformation)
-    .then((gc) => {
-        button.addEventListener('click', onClick);
+    fontLoader = await new FontLoader(`fonts/${name}.json`, transformation);
 
-        slant.value = preferredSlant[name];
+    button.addEventListener('click', onClick);
 
-        glyphChooser = gc;        
-        getFontProperties();
-    });
+    slant.value = preferredSlant[name];
 
+    await getFontProperties();
 }
 
 font.addEventListener('change', getFont);

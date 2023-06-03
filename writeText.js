@@ -263,7 +263,18 @@
             this.#penState = null;
         }
 
-        async write(strokes, at={}) {
+        async write(instruction, offset={}) {
+            for (const { position, strokes } of instruction) {
+                const at = {
+                    x: position + (offset.x ?? 0),
+                    y: (offset.y ?? 0)
+                };
+
+                await this.#drawMove(strokes, at);
+            }
+        }
+
+        async #drawMove(strokes, at) {
             if (this.#drawing) {
                 throw new Error('already running');
             } else {
@@ -286,18 +297,18 @@
             }
         }
 
-        #drawStroke() {
+        async #drawStroke() {
             this.#restart = performance.now();
 
-            return new Promise(resolve => {
+            await new Promise(resolve => {
                 const end = this.#buffer.lines.slice(-1)?.[0]?.d ?? 0;
                 requestAnimationFrame(this.#drawFrame.bind(this, 0, end, resolve));
-            }).then((result) => {
-                //console.log(this.#buffer.perf);
-
-                const wait = this.#config.wait[this.#buffer.pause] || 0;
-                return new Promise(resolve => setTimeout(resolve, wait));
             });
+
+            //console.log(this.#buffer.perf);
+
+            const wait = this.#config.wait[this.#buffer.pause] || 0;
+            return await new Promise(resolve => setTimeout(resolve, wait));
         }
 
         #divide(line1, line2, pos) {
@@ -316,7 +327,6 @@
         #drawFrame(isAt, end, resolve, t) {
             const dur = Math.max(0, (t - this.#restart) / 1000);
             const goesTo = dur * this.#config.speed * this.#config.baseScale;
-            //let f = 0, p = 0, w1, w2;
 
             const perfd = [];
 
@@ -1256,7 +1266,7 @@
         return Promise.resolve(flatFont);
     }
 
-    class GlyphChooser {
+    class FontLoader {
         #single;
         #size;
         #slant;
@@ -1465,12 +1475,14 @@
         baseScale
     };
 
-    function getFontProperties() {
+    async function getFontProperties() {
         button.disabled = true;
         transformation.size = parseInt(size.value, 10);
         transformation.slant = parseInt(slant.value, 10);
 
-        glyphChooser.compute(transformation).then(() => button.disabled = false);
+        await fontLoader.compute(transformation);
+        
+        button.disabled = false;
     }
 
     size.addEventListener('change', getFontProperties);
@@ -1494,15 +1506,13 @@
     async function write(txt) {
         writer.clear();
 
-        const seq = glyphChooser.substitute(txt);
-        const instruction = glyphChooser.connect(seq);
+        const seq = fontLoader.substitute(txt);
+        const instruction = fontLoader.connect(seq);
 
-        for (const { position, strokes } of instruction) {
-            await writer.write(strokes, { x: position + 50, y: 30 });
-        }
+        await writer.write(instruction, { x: 50, y: 30 });
     }
 
-    let glyphChooser;
+    let fontLoader;
 
     function onClick() {
         button.disabled = true;
@@ -1510,21 +1520,18 @@
         write(text.value).then(() => button.disabled = false);
     }
 
-    function getFont() {
+    async function getFont() {
         button.disabled = true;
 
         const name = font.value;
 
-        new GlyphChooser(`fonts/${name}.json`, transformation)
-        .then((gc) => {
-            button.addEventListener('click', onClick);
+        fontLoader = await new FontLoader(`fonts/${name}.json`, transformation);
 
-            slant.value = preferredSlant[name];
+        button.addEventListener('click', onClick);
 
-            glyphChooser = gc;        
-            getFontProperties();
-        });
+        slant.value = preferredSlant[name];
 
+        await getFontProperties();
     }
 
     font.addEventListener('change', getFont);

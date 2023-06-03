@@ -1,6 +1,6 @@
 import { computeFont } from './pathToPoints.mjs';
 
-export default class GlyphChooser {
+export default class FontLoader {
     #single;
     #size;
     #slant;
