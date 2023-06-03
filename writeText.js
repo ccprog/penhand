@@ -1429,6 +1429,7 @@
     const canvas = document.querySelector('canvas.output');
     const text = document.querySelector('input.text');
     const button = document.querySelector('button.start');
+    const font = document.querySelector('select#font');
     const pentype = document.querySelector('select#pen');
     const size = document.querySelector('input#size');
     const slant = document.querySelector('input#slant');
@@ -1444,6 +1445,11 @@
         },
         speed: 120,
         baseScale
+    };
+
+    const preferredSlant = {
+        kurrent: 25,
+        spencerian: 38
     };
 
     const pen = {
@@ -1504,12 +1510,25 @@
         write(text.value).then(() => button.disabled = false);
     }
 
-    new GlyphChooser('fonts/spencerian.json', transformation)
-    .then((gc) => {
-        glyphChooser = gc;
+    function getFont() {
+        button.disabled = true;
 
-        button.addEventListener('click', onClick);
-        button.disabled = false;
-    });
+        const name = font.value;
+
+        new GlyphChooser(`fonts/${name}.json`, transformation)
+        .then((gc) => {
+            button.addEventListener('click', onClick);
+
+            slant.value = preferredSlant[name];
+
+            glyphChooser = gc;        
+            getFontProperties();
+        });
+
+    }
+
+    font.addEventListener('change', getFont);
+
+    getFont();
 
 })();

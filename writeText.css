@@ -1,0 +1,54 @@
+form {
+    display: inline-grid;
+    grid-template-columns: repeat(4, auto);
+    grid-template-areas:
+        "l1 s1 .  ."
+        "l2 s2 l3 i3"
+        "l4 i4 l5 i5"
+        "t  t  t  b";
+    gap: 10px;
+    justify-items: stretch;
+}
+label[for="font"] {
+    grid-area: l1;
+}
+#font {
+    grid-area: s1;
+}
+label[for="pen"] {
+    grid-area: l2;
+}
+#pen {
+    grid-area: s2;
+}
+label[for="tilt"] {
+    grid-area: l3;
+}
+#tilt {
+    grid-area: i3;
+}
+label[for="size"] {
+    grid-area: l4;
+}
+#size {
+    grid-area: i4;
+}
+label[for="slant"] {
+    grid-area: l5;
+}
+#slant {
+    grid-area: i5;
+}
+.text {
+    grid-area: t;
+}
+.start {
+    grid-area: b;
+}
+label, input, select, button {
+    font-family: sans-serif;
+    font-size: 1rem;
+}
+input[type="number"] {
+    width: 5em;
+}
